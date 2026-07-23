@@ -7,3 +7,9 @@ dist-ssr
 .env.*
 !.env.example
 dev-dist
+
+
+# TS composite build artifacts
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
