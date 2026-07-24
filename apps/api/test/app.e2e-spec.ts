@@ -399,4 +399,77 @@ describe('FitCore API (e2e)', () => {
       expect(res.body.paymentsToday).toHaveProperty('amount');
     });
   });
+
+  // ------------------------- Slice 5: Workouts & Diet -------------------------
+
+  describe('workouts & diet', () => {
+    let trainerToken: string;
+    let recToken: string;
+    let exerciseId: string;
+    let memberId: string;
+
+    beforeAll(async () => {
+      trainerToken = (await login('vishnu@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      const members = await request(http).get('/api/v1/members?q=KCH-0001').set('Authorization', `Bearer ${trainerToken}`);
+      memberId = members.body[0]?.id;
+    });
+
+    it('trainer creates an exercise', async () => {
+      const res = await request(http)
+        .post('/api/v1/exercises')
+        .set('Authorization', `Bearer ${trainerToken}`)
+        .send({ name: 'Bench Press', muscleGroup: 'chest', difficulty: 'intermediate' });
+      expect(res.status).toBe(201);
+      exerciseId = res.body.id;
+    });
+
+    it('lists exercises', async () => {
+      const res = await request(http).get('/api/v1/exercises').set('Authorization', `Bearer ${trainerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('receptionist cannot create an exercise (403)', async () => {
+      const res = await request(http)
+        .post('/api/v1/exercises')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ name: 'Squat' });
+      expect(res.status).toBe(403);
+    });
+
+    it('trainer creates a workout plan with exercises', async () => {
+      const res = await request(http)
+        .post('/api/v1/workout-plans')
+        .set('Authorization', `Bearer ${trainerToken}`)
+        .send({ name: 'Push Day', goal: 'strength', exercises: [{ exerciseId, sets: 5, reps: '5', restSec: 120 }] });
+      expect(res.status).toBe(201);
+      expect(res.body.exercises).toHaveLength(1);
+      expect(res.body.isTemplate).toBe(true);
+    });
+
+    it('logs a workout and flags a first-time PR', async () => {
+      const res = await request(http)
+        .post('/api/v1/workout-logs')
+        .set('Authorization', `Bearer ${trainerToken}`)
+        .send({ memberId, rating: 5, sets: [{ exerciseId, setIndex: 0, weightGrams: 60000, reps: 5 }] });
+      expect(res.status).toBe(201);
+      expect(res.body.sets[0].isPr).toBe(true);
+    });
+
+    it('trainer creates a diet plan with meals', async () => {
+      const res = await request(http)
+        .post('/api/v1/diet-plans')
+        .set('Authorization', `Bearer ${trainerToken}`)
+        .send({ name: 'Cutting', dailyCalories: 1800, meals: [{ mealType: 'breakfast', title: 'Oats', calories: 400 }] });
+      expect(res.status).toBe(201);
+      expect(res.body.meals).toHaveLength(1);
+    });
+
+    it('lists diet plans', async () => {
+      const res = await request(http).get('/api/v1/diet-plans').set('Authorization', `Bearer ${trainerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

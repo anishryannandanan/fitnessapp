@@ -10,6 +10,8 @@ import { MembershipsModule } from './modules/memberships/memberships.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
+import { WorkoutsModule } from './modules/workouts/workouts.module';
+import { DietModule } from './modules/diet/diet.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -27,6 +29,8 @@ import { HealthController } from './health.controller';
     BillingModule,
     AttendanceModule,
     DashboardsModule,
+    WorkoutsModule,
+    DietModule,
   ],
   controllers: [HealthController],
 })

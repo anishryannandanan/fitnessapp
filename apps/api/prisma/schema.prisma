@@ -85,6 +85,12 @@ enum AttendanceMethod {
   manual
 }
 
+enum Difficulty {
+  beginner
+  intermediate
+  advanced
+}
+
 // Exactly ONE business exists (single-business constraint, see docs).
 model Business {
   id        String   @id @default(uuid())
@@ -237,6 +243,7 @@ model Member {
   invoices       Invoice[]
   payments       Payment[]
   attendanceLogs AttendanceLog[]
+  workoutLogs    WorkoutLog[]
 
   @@unique([homeBranchId, memberCode])
   @@index([homeBranchId, status])
@@ -342,4 +349,138 @@ model AttendanceLog {
 
   @@index([branchId, checkInAt])
   @@index([memberId, checkInAt])
+}
+
+
+// ------------------------- Slice 5: Workouts & Diet -------------------------
+
+// Exercise library — shared across the business (not branch-scoped).
+model Exercise {
+  id             String      @id @default(uuid())
+  businessId     String
+  name           String
+  muscleGroup    String?
+  equipment      String?
+  difficulty     Difficulty  @default(beginner)
+  instructions   String?
+  imageUrl       String?
+  videoUrl       String?
+  defaultSets    Int?
+  defaultReps    Int?
+  defaultRestSec Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  planExercises WorkoutPlanExercise[]
+
+  @@index([businessId])
+  @@index([muscleGroup])
+}
+
+model WorkoutPlan {
+  id           String   @id @default(uuid())
+  branchId     String
+  createdById  String // trainer user id
+  memberId     String? // null => reusable template
+  name         String
+  goal         String?
+  weeks        Int      @default(4)
+  daysPerWeek  Int      @default(3)
+  isTemplate   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  exercises WorkoutPlanExercise[]
+  logs      WorkoutLog[]
+
+  @@index([branchId])
+  @@index([memberId])
+  @@index([createdById])
+}
+
+model WorkoutPlanExercise {
+  id         String  @id @default(uuid())
+  planId     String
+  exerciseId String
+  dayIndex   Int     @default(1)
+  orderIndex Int     @default(0)
+  sets       Int     @default(3)
+  reps       String  @default("10")
+  restSec    Int     @default(60)
+  notes      String?
+
+  plan     WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercise Exercise    @relation(fields: [exerciseId], references: [id])
+
+  @@index([planId])
+}
+
+model WorkoutLog {
+  id              String   @id @default(uuid())
+  memberId        String
+  planId          String?
+  performedAt     DateTime @default(now())
+  rating          Int?
+  notes           String?
+  durationMinutes Int?
+  createdAt       DateTime @default(now())
+
+  member Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan   WorkoutPlan? @relation(fields: [planId], references: [id])
+  sets   WorkoutLogSet[]
+
+  @@index([memberId, performedAt])
+}
+
+model WorkoutLogSet {
+  id           String  @id @default(uuid())
+  workoutLogId String
+  exerciseId   String
+  setIndex     Int
+  weightGrams  Int     @default(0)
+  reps         Int     @default(0)
+  isPr         Boolean @default(false)
+  completed    Boolean @default(true)
+
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([exerciseId])
+}
+
+model DietPlan {
+  id            String   @id @default(uuid())
+  branchId      String
+  createdById   String
+  memberId      String?
+  name          String
+  dailyCalories Int?
+  proteinG      Int?
+  carbsG        Int?
+  fatG          Int?
+  waterGoalMl   Int?
+  isTemplate    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meals DietPlanMeal[]
+
+  @@index([branchId])
+  @@index([memberId])
+}
+
+model DietPlanMeal {
+  id         String @id @default(uuid())
+  dietPlanId String
+  mealType   String // breakfast/lunch/dinner/snack
+  orderIndex Int    @default(0)
+  title      String
+  calories   Int?
+  proteinG   Int?
+  carbsG     Int?
+  fatG       Int?
+
+  dietPlan DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+
+  @@index([dietPlanId])
 }
