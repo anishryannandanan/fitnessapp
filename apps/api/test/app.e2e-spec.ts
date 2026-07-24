@@ -116,4 +116,86 @@ describe('FitCore API (e2e)', () => {
     const res = await request(http).get('/api/v1/branches');
     expect(res.status).toBe(401);
   });
+
+  // ------------------------- Slice 2: Members & sales -------------------------
+
+  describe('packages, members & memberships', () => {
+    let ownerToken: string;
+    let managerToken: string;
+    let kochiId: string;
+    let allBranchPackageId: string;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      const branches = await request(http).get('/api/v1/branches').set('Authorization', `Bearer ${ownerToken}`);
+      kochiId = branches.body.find((b: any) => b.code === 'KCH').id;
+    });
+
+    it('GET /packages lists seeded packages', async () => {
+      const res = await request(http).get('/api/v1/packages').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(4);
+      allBranchPackageId = res.body.find((p: any) => p.branchId === null).id;
+    });
+
+    it('POST /packages is forbidden for a receptionist', async () => {
+      const recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      const res = await request(http)
+        .post('/api/v1/packages')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ name: 'X', type: 'non_trainer', durationDays: 30, price: 1000, branchId: kochiId });
+      expect(res.status).toBe(403);
+    });
+
+    it('POST /members/onboard creates a member with an active membership', async () => {
+      const phone = `+9190000${Math.floor(Math.random() * 90000 + 10000)}`;
+      const res = await request(http)
+        .post('/api/v1/members/onboard')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({
+          personal: { fullName: 'E2E Member', phone },
+          packageId: allBranchPackageId,
+        });
+      expect(res.status).toBe(201);
+      expect(res.body.member.memberCode).toMatch(/^KCH-\d{4}$/);
+      expect(res.body.membership.status).toBe('active');
+      expect(res.body.membership.priceSnapshot).toBeGreaterThan(0);
+    });
+
+    it('GET /members returns members scoped to the manager branch', async () => {
+      const res = await request(http).get('/api/v1/members').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+      expect(res.body.every((m: any) => m.homeBranchId === kochiId)).toBe(true);
+    });
+
+    it('search filters members by name', async () => {
+      const res = await request(http)
+        .get('/api/v1/members?q=E2E')
+        .set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('renews a membership (stacking extends the end date)', async () => {
+      // onboard a fresh member, then renew
+      const phone = `+9190000${Math.floor(Math.random() * 90000 + 10000)}`;
+      const onboard = await request(http)
+        .post('/api/v1/members/onboard')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ personal: { fullName: 'Renew Me', phone }, packageId: allBranchPackageId });
+      const memberId = onboard.body.member.id;
+      const firstEnd = new Date(onboard.body.membership.endDate).getTime();
+
+      const renew = await request(http)
+        .post(`/api/v1/memberships/member/${memberId}/renew`)
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({});
+      expect(renew.status).toBe(201);
+      // new term starts at the previous end date => new end is strictly later
+      expect(new Date(renew.body.endDate).getTime()).toBeGreaterThan(firstEnd);
+      expect(renew.body.isRenewalOf).toBe(onboard.body.membership.id);
+    });
+  });
 });

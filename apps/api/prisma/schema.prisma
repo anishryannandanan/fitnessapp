@@ -1,6 +1,6 @@
-// FitCore — Prisma schema (Slice 1: foundation + identity + branches)
+// FitCore — Prisma schema (Slice 1 + Slice 2: identity, branches, members & sales)
 // Full data model is specified in docs/06-database-schema.md.
-// Money is stored as integer minor units (paise) elsewhere; not needed in Slice 1.
+// Money is stored as integer minor units (paise).
 
 generator client {
   provider = "prisma-client-js"
@@ -30,6 +30,27 @@ enum StaffType {
   maintenance
 }
 
+enum Gender {
+  male
+  female
+  other
+  undisclosed
+}
+
+enum PackageType {
+  trainer
+  non_trainer
+  custom
+}
+
+enum MembershipStatus {
+  active
+  expired
+  frozen
+  cancelled
+  pending
+}
+
 // Exactly ONE business exists (single-business constraint, see docs).
 model Business {
   id        String   @id @default(uuid())
@@ -43,6 +64,8 @@ model Business {
 
   branches Branch[]
   users    User[]
+  packages Package[]
+  members  Member[]
 }
 
 model Branch {
@@ -61,6 +84,9 @@ model Branch {
   business       Business       @relation(fields: [businessId], references: [id])
   userBranches   UserBranch[]
   staffProfiles  StaffProfile[]
+  packages       Package[]
+  members        Member[]
+  memberships    Membership[]
 
   @@unique([businessId, code])
   @@index([businessId])
@@ -118,4 +144,87 @@ model StaffProfile {
 
   @@index([branchId])
   @@index([staffType])
+}
+
+
+// ------------------------- Slice 2: Members & sales -------------------------
+
+// A membership package. branchId = null means available at all branches.
+model Package {
+  id              String      @id @default(uuid())
+  businessId      String
+  branchId        String?
+  name            String
+  type            PackageType
+  description     String?
+  durationDays    Int
+  price           Int // minor units (paise)
+  taxPercent      Int         @default(0)
+  ptSessions      Int?
+  includesTrainer Boolean     @default(false)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id])
+  branch      Branch?      @relation(fields: [branchId], references: [id])
+  memberships Membership[]
+
+  @@index([businessId, isActive])
+  @@index([branchId])
+  @@index([type])
+}
+
+model Member {
+  id                String    @id @default(uuid())
+  businessId        String
+  homeBranchId      String
+  memberCode        String
+  fullName          String
+  gender            Gender?
+  dob               DateTime?
+  email             String?
+  phone             String?
+  address           String?
+  photoUrl          String?
+  multiBranchAccess Boolean   @default(false)
+  status            String    @default("active")
+  joinedAt          DateTime  @default(now())
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id])
+  homeBranch  Branch       @relation(fields: [homeBranchId], references: [id])
+  memberships Membership[]
+
+  @@unique([homeBranchId, memberCode])
+  @@index([homeBranchId, status])
+  @@index([phone])
+  @@index([fullName])
+}
+
+model Membership {
+  id            String           @id @default(uuid())
+  memberId      String
+  branchId      String
+  packageId     String
+  startDate     DateTime
+  endDate       DateTime
+  priceSnapshot Int // price at purchase, immutable (minor units)
+  taxSnapshot   Int              @default(0)
+  sessionsTotal Int?
+  sessionsUsed  Int              @default(0)
+  status        MembershipStatus @default(active)
+  isRenewalOf   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id])
+  package Package @relation(fields: [packageId], references: [id])
+
+  @@index([memberId])
+  @@index([branchId, status])
+  @@index([endDate])
 }
