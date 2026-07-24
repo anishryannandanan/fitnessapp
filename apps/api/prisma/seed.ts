@@ -164,7 +164,7 @@ async function main() {
   if (!existingMember) {
     const start = new Date();
     const end = new Date(start.getTime() + gymAnnual.durationDays * 24 * 60 * 60 * 1000);
-    await prisma.member.create({
+    const newMember = await prisma.member.create({
       data: {
         businessId: business.id,
         homeBranchId: kochi.id,
@@ -183,6 +183,23 @@ async function main() {
             status: MembershipStatus.active,
           },
         },
+      },
+      include: { memberships: true },
+    });
+
+    // Issue an invoice for the membership (unpaid => appears in outstanding/dues).
+    const ms = newMember.memberships[0];
+    await prisma.invoice.create({
+      data: {
+        branchId: kochi.id,
+        memberId: newMember.id,
+        membershipId: ms.id,
+        invoiceNumber: 'INV-KCH-000001',
+        subtotal: gymAnnual.price,
+        tax: 0,
+        total: gymAnnual.price,
+        amountPaid: 0,
+        status: 'issued',
       },
     });
   }

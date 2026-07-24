@@ -7,6 +7,10 @@ interface ApiMembership {
   status: string;
   package?: { name?: string } | null;
 }
+interface ApiInvoice {
+  total: number;
+  amountPaid: number;
+}
 interface ApiMember {
   id: string;
   memberCode: string;
@@ -14,6 +18,7 @@ interface ApiMember {
   homeBranchId: string;
   status: string;
   memberships?: ApiMembership[];
+  invoices?: ApiInvoice[];
 }
 
 function daysUntil(iso?: string): number {
@@ -25,13 +30,15 @@ function daysUntil(iso?: string): number {
 function toMember(m: ApiMember): Member {
   const active = m.memberships?.[0];
   const status = (['active', 'expired', 'frozen'].includes(m.status) ? m.status : 'active') as Member['status'];
+  // Dues = sum of outstanding balance across the member's unpaid invoices.
+  const duesMinor = (m.invoices ?? []).reduce((sum, inv) => sum + Math.max(0, inv.total - inv.amountPaid), 0);
   return {
     id: m.id,
     name: m.fullName,
     code: m.memberCode,
     packageName: active?.package?.name ?? '—',
     expiresInDays: daysUntil(active?.endDate),
-    duesMinor: 0, // payments arrive in a later slice
+    duesMinor,
     branchId: m.homeBranchId,
     status,
   };

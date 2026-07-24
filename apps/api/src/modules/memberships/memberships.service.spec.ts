@@ -26,7 +26,8 @@ describe('MembershipsService.renew', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma = createPrismaMock();
-    service = new MembershipsService(prisma as any);
+    const billing = { createInvoiceTx: jest.fn().mockResolvedValue({ id: 'inv-1' }) };
+    service = new MembershipsService(prisma as any, billing as any);
     prisma.member.findFirst.mockResolvedValue({ id: 'mem-1', homeBranchId: 'b-kochi' });
     prisma.package.findFirst.mockResolvedValue({ id: 'pkg-1', price: 150000, taxPercent: 0, durationDays: 30, ptSessions: null });
   });

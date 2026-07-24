@@ -7,6 +7,7 @@ import { BranchesModule } from './modules/branches/branches.module';
 import { PackagesModule } from './modules/packages/packages.module';
 import { MembersModule } from './modules/members/members.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
+import { BillingModule } from './modules/billing/billing.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -21,6 +22,7 @@ import { HealthController } from './health.controller';
     PackagesModule,
     MembersModule,
     MembershipsModule,
+    BillingModule,
   ],
   controllers: [HealthController],
 })

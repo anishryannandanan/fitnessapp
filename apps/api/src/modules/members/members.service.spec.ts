@@ -30,7 +30,8 @@ describe('MembersService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma = createPrismaMock();
-    service = new MembersService(prisma as any);
+    const billing = { createInvoiceTx: jest.fn().mockResolvedValue({ id: 'inv-1' }) };
+    service = new MembersService(prisma as any, billing as any);
     prisma.branch.findUnique.mockResolvedValue({ id: 'b-kochi', code: 'KCH' });
     prisma.member.count.mockResolvedValue(0);
   });

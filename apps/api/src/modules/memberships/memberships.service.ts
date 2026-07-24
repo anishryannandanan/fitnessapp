@@ -7,12 +7,16 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { canAccessBranch } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { RenewDto } from './dto/renew.dto';
+import { BillingService } from '../billing/billing.service';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 @Injectable()
 export class MembershipsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
+  ) {}
 
   private async getMemberInScope(user: AuthUser, memberId: string) {
     const member = await this.prisma.member.findFirst({
@@ -71,7 +75,8 @@ export class MembershipsService {
         });
       }
 
-      return tx.membership.create({
+      const tax = Math.round((pkg.price * pkg.taxPercent) / 100);
+      const membership = await tx.membership.create({
         data: {
           memberId: member.id,
           branchId: member.homeBranchId,
@@ -79,13 +84,25 @@ export class MembershipsService {
           startDate: start,
           endDate: end,
           priceSnapshot: pkg.price,
-          taxSnapshot: Math.round((pkg.price * pkg.taxPercent) / 100),
+          taxSnapshot: tax,
           sessionsTotal: pkg.ptSessions ?? undefined,
           status: 'active',
           isRenewalOf: current?.id ?? undefined,
         },
         include: { package: { select: { name: true, type: true } } },
       });
+
+      // Renewals are billed too.
+      await this.billing.createInvoiceTx(tx, {
+        branchId: member.homeBranchId,
+        memberId: member.id,
+        membershipId: membership.id,
+        subtotal: pkg.price,
+        tax,
+        issuedById: user.sub,
+      });
+
+      return membership;
     });
   }
 }

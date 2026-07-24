@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { MembershipsService } from './memberships.service';
 import { MembershipsController } from './memberships.controller';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
+  imports: [BillingModule],
   controllers: [MembershipsController],
   providers: [MembershipsService],
   exports: [MembershipsService],

@@ -10,10 +10,17 @@ import { allowedBranchIds, canAccessBranch } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 import { CreateMemberDto } from './dto/create-member.dto';
 import { OnboardDto } from './dto/onboard.dto';
+import { BillingService } from '../billing/billing.service';
+
+// Invoice statuses that still owe money (used to compute dues on lists).
+const UNPAID_STATUSES = ['issued', 'partially_paid', 'overdue'] as const;
 
 @Injectable()
 export class MembersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly billing: BillingService,
+  ) {}
 
   /** Resolve which branch a create/onboard should target for this user. */
   private resolveBranchId(user: AuthUser, requested?: string): string {
@@ -66,6 +73,11 @@ export class MembersService {
           take: 1,
           include: { package: { select: { name: true } } },
         },
+        // Unpaid invoices let the client compute dues per member.
+        invoices: {
+          where: { status: { in: [...UNPAID_STATUSES] } },
+          select: { total: true, amountPaid: true },
+        },
       },
       take: 100,
     });
@@ -79,6 +91,8 @@ export class MembersService {
           orderBy: { createdAt: 'desc' },
           include: { package: { select: { name: true, type: true } } },
         },
+        invoices: { orderBy: { createdAt: 'desc' } },
+        payments: { orderBy: { paidAt: 'desc' }, take: 20 },
       },
     });
     if (!member) throw new NotFoundException('Member not found');
@@ -143,6 +157,7 @@ export class MembersService {
         },
       });
 
+      const tax = Math.round((pkg.price * pkg.taxPercent) / 100);
       const membership = await tx.membership.create({
         data: {
           memberId: member.id,
@@ -151,14 +166,24 @@ export class MembersService {
           startDate: start,
           endDate: end,
           priceSnapshot: pkg.price,
-          taxSnapshot: Math.round((pkg.price * pkg.taxPercent) / 100),
+          taxSnapshot: tax,
           sessionsTotal: pkg.ptSessions ?? undefined,
           status: 'active',
         },
         include: { package: { select: { name: true, type: true } } },
       });
 
-      return { member, membership };
+      // Every sale produces an invoice (unpaid until a payment is recorded).
+      const invoice = await this.billing.createInvoiceTx(tx, {
+        branchId,
+        memberId: member.id,
+        membershipId: membership.id,
+        subtotal: pkg.price,
+        tax,
+        issuedById: user.sub,
+      });
+
+      return { member, membership, invoice };
     });
   }
 }
