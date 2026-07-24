@@ -198,4 +198,99 @@ describe('FitCore API (e2e)', () => {
       expect(renew.body.isRenewalOf).toBe(onboard.body.membership.id);
     });
   });
+
+  // ------------------------- Slice 3: Payments & billing -------------------------
+
+  describe('invoices & payments', () => {
+    let managerToken: string;
+    let recToken: string;
+    let ownerToken: string;
+    let allBranchPackageId: string;
+    let memberId: string;
+    let invoiceId: string;
+    let invoiceTotal: number;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+
+      const packages = await request(http).get('/api/v1/packages').set('Authorization', `Bearer ${managerToken}`);
+      allBranchPackageId = packages.body.find((p: any) => p.branchId === null).id;
+
+      // Onboard a member -> should auto-create an issued invoice.
+      const phone = `+9190000${Math.floor(Math.random() * 90000 + 10000)}`;
+      const onboard = await request(http)
+        .post('/api/v1/members/onboard')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ personal: { fullName: 'Billing Member', phone }, packageId: allBranchPackageId });
+      memberId = onboard.body.member.id;
+    });
+
+    it('onboarding auto-creates an issued invoice for the member', async () => {
+      const res = await request(http)
+        .get(`/api/v1/invoices?memberId=${memberId}`)
+        .set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBe(1);
+      expect(res.body[0].status).toBe('issued');
+      invoiceId = res.body[0].id;
+      invoiceTotal = res.body[0].total;
+      expect(invoiceTotal).toBeGreaterThan(0);
+    });
+
+    it('rejects overpayment (422)', async () => {
+      const res = await request(http)
+        .post('/api/v1/payments')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ invoiceId, amount: invoiceTotal + 1, method: 'cash' });
+      expect(res.status).toBe(422);
+    });
+
+    it('records a partial payment => partially_paid', async () => {
+      const half = Math.floor(invoiceTotal / 2);
+      const res = await request(http)
+        .post('/api/v1/payments')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ invoiceId, amount: half, method: 'upi', reference: 'UTR123' });
+      expect(res.status).toBe(201);
+      expect(res.body.invoice.status).toBe('partially_paid');
+      expect(res.body.receipt.balanceDue).toBe(invoiceTotal - half);
+    });
+
+    it('records the remaining balance => paid', async () => {
+      const invoice = await request(http)
+        .get(`/api/v1/invoices/${invoiceId}`)
+        .set('Authorization', `Bearer ${managerToken}`);
+      const res = await request(http)
+        .post('/api/v1/payments')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ invoiceId, amount: invoice.body.balanceDue, method: 'cash' });
+      expect(res.status).toBe(201);
+      expect(res.body.invoice.status).toBe('paid');
+      expect(res.body.receipt.balanceDue).toBe(0);
+    });
+
+    it('member list exposes unpaid invoices for dues (seeded member has one)', async () => {
+      const res = await request(http).get('/api/v1/members').set('Authorization', `Bearer ${managerToken}`);
+      const withDues = res.body.filter((m: any) => (m.invoices ?? []).some((i: any) => i.total - i.amountPaid > 0));
+      expect(withDues.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET /invoices/outstanding is owner/manager only and returns a total', async () => {
+      const res = await request(http)
+        .get('/api/v1/invoices/outstanding')
+        .set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(typeof res.body.totalOutstanding).toBe('number');
+      expect(Array.isArray(res.body.members)).toBe(true);
+    });
+
+    it('GET /invoices/outstanding is forbidden for a receptionist (403)', async () => {
+      const res = await request(http)
+        .get('/api/v1/invoices/outstanding')
+        .set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });

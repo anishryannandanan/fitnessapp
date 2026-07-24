@@ -51,6 +51,33 @@ enum MembershipStatus {
   pending
 }
 
+enum PaymentMethod {
+  cash
+  card
+  upi
+  bank_transfer
+  online_gateway
+  installment
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  partially_paid
+  failed
+  refunded
+  void
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  partially_paid
+  overdue
+  void
+}
+
 // Exactly ONE business exists (single-business constraint, see docs).
 model Business {
   id        String   @id @default(uuid())
@@ -87,6 +114,8 @@ model Branch {
   packages       Package[]
   members        Member[]
   memberships    Membership[]
+  invoices       Invoice[]
+  payments       Payment[]
 
   @@unique([businessId, code])
   @@index([businessId])
@@ -197,6 +226,8 @@ model Member {
   business    Business     @relation(fields: [businessId], references: [id])
   homeBranch  Branch       @relation(fields: [homeBranchId], references: [id])
   memberships Membership[]
+  invoices    Invoice[]
+  payments    Payment[]
 
   @@unique([homeBranchId, memberCode])
   @@index([homeBranchId, status])
@@ -220,11 +251,65 @@ model Membership {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
 
-  member  Member  @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  branch  Branch  @relation(fields: [branchId], references: [id])
-  package Package @relation(fields: [packageId], references: [id])
+  member   Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  package  Package   @relation(fields: [packageId], references: [id])
+  invoices Invoice[]
 
   @@index([memberId])
   @@index([branchId, status])
   @@index([endDate])
+}
+
+
+// ------------------------- Slice 3: Payments & billing -------------------------
+
+model Invoice {
+  id            String        @id @default(uuid())
+  branchId      String
+  memberId      String
+  membershipId  String?
+  invoiceNumber String        @unique
+  subtotal      Int // minor units
+  tax           Int           @default(0)
+  total         Int
+  amountPaid    Int           @default(0)
+  status        InvoiceStatus @default(issued)
+  dueDate       DateTime?
+  issuedById    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id])
+  payments   Payment[]
+
+  @@index([memberId])
+  @@index([branchId, status])
+  @@index([dueDate])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  branchId      String
+  invoiceId     String?
+  memberId      String
+  amount        Int // minor units
+  method        PaymentMethod
+  status        PaymentStatus @default(paid)
+  reference     String?
+  paidAt        DateTime      @default(now())
+  collectedById String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+
+  branch  Branch   @relation(fields: [branchId], references: [id])
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  member  Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([memberId])
+  @@index([branchId, paidAt])
+  @@index([status])
 }
