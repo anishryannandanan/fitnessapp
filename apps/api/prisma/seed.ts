@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { PrismaClient, UserRole, StaffType } from '@prisma/client';
+import { PrismaClient, UserRole, StaffType, PackageType, MembershipStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -116,7 +116,79 @@ async function main() {
     create: { userId: member.id, branchId: kochi.id, isPrimary: true },
   });
 
+  // 6) Sample packages (all-branch + branch-specific). Idempotent by name.
+  const packageSeeds: Array<{
+    name: string;
+    type: PackageType;
+    durationDays: number;
+    price: number; // minor units
+    ptSessions?: number;
+    includesTrainer?: boolean;
+    branchId?: string | null;
+  }> = [
+    { name: 'Gym Only - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 150000, branchId: null },
+    { name: 'Gym Only - Annual', type: PackageType.non_trainer, durationDays: 365, price: 1200000, branchId: null },
+    { name: 'Cardio Only - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 120000, branchId: null },
+    { name: 'Personal Training - Monthly', type: PackageType.trainer, durationDays: 30, price: 500000, ptSessions: 12, includesTrainer: true, branchId: null },
+    { name: 'Transformation - Quarterly', type: PackageType.trainer, durationDays: 90, price: 1500000, ptSessions: 36, includesTrainer: true, branchId: kochi.id },
+  ];
+
+  const packages = [];
+  for (const p of packageSeeds) {
+    // No natural unique key on name; find-or-create to stay idempotent.
+    const existingPkg = await prisma.package.findFirst({
+      where: { businessId: business.id, name: p.name },
+    });
+    const pkg =
+      existingPkg ??
+      (await prisma.package.create({
+        data: {
+          businessId: business.id,
+          branchId: p.branchId ?? null,
+          name: p.name,
+          type: p.type,
+          durationDays: p.durationDays,
+          price: p.price,
+          ptSessions: p.ptSessions ?? null,
+          includesTrainer: p.includesTrainer ?? false,
+        },
+      }));
+    packages.push(pkg);
+  }
+
+  // 7) A demo member with an active membership at Kochi.
+  const gymAnnual = packages.find((p) => p.name === 'Gym Only - Annual')!;
+  const existingMember = await prisma.member.findFirst({
+    where: { homeBranchId: kochi.id, memberCode: 'KCH-0001' },
+  });
+  if (!existingMember) {
+    const start = new Date();
+    const end = new Date(start.getTime() + gymAnnual.durationDays * 24 * 60 * 60 * 1000);
+    await prisma.member.create({
+      data: {
+        businessId: business.id,
+        homeBranchId: kochi.id,
+        memberCode: 'KCH-0001',
+        fullName: 'Fathima S',
+        phone: '+919000000001',
+        email: 'fathima.member@example.com',
+        gender: 'female',
+        memberships: {
+          create: {
+            branchId: kochi.id,
+            packageId: gymAnnual.id,
+            startDate: start,
+            endDate: end,
+            priceSnapshot: gymAnnual.price,
+            status: MembershipStatus.active,
+          },
+        },
+      },
+    });
+  }
+
   console.log('Seed complete.');
+  console.log(`  Packages: ${packages.length}`);
   console.log(`  Business: ${business.name}`);
   console.log(`  Branches: ${branches.map((b) => b.code).join(', ')}`);
   console.log(`  Owner login: ${OWNER_EMAIL} / ${OWNER_PASSWORD}`);

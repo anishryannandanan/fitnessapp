@@ -4,6 +4,9 @@ import { validateEnv } from './config/env';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { PackagesModule } from './modules/packages/packages.module';
+import { MembersModule } from './modules/members/members.module';
+import { MembershipsModule } from './modules/memberships/memberships.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -15,6 +18,9 @@ import { HealthController } from './health.controller';
     PrismaModule,
     AuthModule,
     BranchesModule,
+    PackagesModule,
+    MembersModule,
+    MembershipsModule,
   ],
   controllers: [HealthController],
 })
