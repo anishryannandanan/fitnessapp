@@ -356,4 +356,47 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Dashboards -------------------------
+
+  describe('dashboards', () => {
+    let ownerToken: string;
+    let managerToken: string;
+    let recToken: string;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('owner dashboard returns KPIs + branch comparison', async () => {
+      const res = await request(http).get('/api/v1/dashboard/owner').set('Authorization', `Bearer ${ownerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.kpis).toHaveProperty('totalMembers');
+      expect(res.body.kpis).toHaveProperty('revenue');
+      expect(res.body.kpis).toHaveProperty('outstanding');
+      expect(Array.isArray(res.body.comparison)).toBe(true);
+      expect(res.body.comparison.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('owner dashboard is forbidden for a manager (403)', async () => {
+      const res = await request(http).get('/api/v1/dashboard/owner').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    it('branch dashboard is scoped for a manager', async () => {
+      const res = await request(http).get('/api/v1/dashboard/branch').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.kpis).toHaveProperty('totalMembers');
+      expect(res.body.branchId).toBeTruthy();
+    });
+
+    it('reception dashboard returns today counts', async () => {
+      const res = await request(http).get('/api/v1/dashboard/reception').set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('checkInsToday');
+      expect(res.body.paymentsToday).toHaveProperty('amount');
+    });
+  });
 });
