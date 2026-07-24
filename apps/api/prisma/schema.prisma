@@ -1,0 +1,121 @@
+// FitCore — Prisma schema (Slice 1: foundation + identity + branches)
+// Full data model is specified in docs/06-database-schema.md.
+// Money is stored as integer minor units (paise) elsewhere; not needed in Slice 1.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  manager
+  receptionist
+  trainer
+  dietician
+  member
+}
+
+enum StaffType {
+  manager
+  receptionist
+  trainer
+  dietician
+  cleaner
+  sales
+  maintenance
+}
+
+// Exactly ONE business exists (single-business constraint, see docs).
+model Business {
+  id        String   @id @default(uuid())
+  name      String
+  legalName String?
+  currency  String   @default("INR") @db.Char(3)
+  timezone  String   @default("Asia/Kolkata")
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches Branch[]
+  users    User[]
+}
+
+model Branch {
+  id         String   @id @default(uuid())
+  businessId String
+  name       String
+  code       String
+  address    String?
+  phone      String?
+  email      String?
+  timezone   String   @default("Asia/Kolkata")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business       Business       @relation(fields: [businessId], references: [id])
+  userBranches   UserBranch[]
+  staffProfiles  StaffProfile[]
+
+  @@unique([businessId, code])
+  @@index([businessId])
+  @@index([isActive])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  businessId   String
+  role         UserRole
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String?
+  fullName     String
+  avatarColor  String?
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  userBranches UserBranch[]
+  staffProfile StaffProfile?
+
+  @@index([role])
+}
+
+// Staff <-> branch assignment. Owner has NO rows here (implicit all-branches).
+model UserBranch {
+  id        String   @id @default(uuid())
+  userId    String
+  branchId  String
+  isPrimary Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+}
+
+model StaffProfile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  branchId       String
+  staffType      StaffType
+  specialization String?
+  dateOfJoining  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([staffType])
+}
