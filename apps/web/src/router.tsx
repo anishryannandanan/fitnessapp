@@ -22,6 +22,7 @@ const OwnerDashboard = lazy(() =>
 const lazyEl = (el: React.ReactNode) => <Suspense fallback={<PageLoader />}>{el}</Suspense>;
 import { ManagerDashboard } from '@/pages/branch/ManagerDashboard';
 import { ReceptionHome } from '@/pages/reception/ReceptionHome';
+import { OnboardWizard } from '@/pages/reception/OnboardWizard';
 import { TrainerToday } from '@/pages/trainer/TrainerToday';
 import { MemberHome } from '@/pages/member/MemberHome';
 import { MembersList } from '@/pages/shared/MembersList';
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
       { path: 'home', element: <ReceptionHome /> },
       { path: 'check-in', element: <ComingSoon title="Check-in" icon={QrCode} description="Scan a QR, or look up by member ID / mobile to check members in and out." /> },
       { path: 'members', element: <MembersList /> },
+      { path: 'members/new', element: <OnboardWizard /> },
       { path: 'payments', element: <ComingSoon title="Payments" icon={CreditCard} description="Collect payments, generate receipts and share them via WhatsApp / SMS / email." /> },
       { path: 'enquiries', element: <ComingSoon title="Enquiries" icon={ClipboardList} description="Capture and follow up on leads, then convert them into members." /> },
     ],
