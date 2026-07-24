@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import {
-  BarChart3, Wallet, UserCog, QrCode, CreditCard, Dumbbell, Salad,
+  BarChart3, Wallet, UserCog, CreditCard, Dumbbell, Salad,
   LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
 } from 'lucide-react';
 
@@ -23,6 +23,7 @@ const lazyEl = (el: React.ReactNode) => <Suspense fallback={<PageLoader />}>{el}
 import { ManagerDashboard } from '@/pages/branch/ManagerDashboard';
 import { ReceptionHome } from '@/pages/reception/ReceptionHome';
 import { OnboardWizard } from '@/pages/reception/OnboardWizard';
+import { CheckIn } from '@/pages/reception/CheckIn';
 import { TrainerToday } from '@/pages/trainer/TrainerToday';
 import { MemberHome } from '@/pages/member/MemberHome';
 import { MembersList } from '@/pages/shared/MembersList';
@@ -77,7 +78,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="home" replace /> },
       { path: 'home', element: <ReceptionHome /> },
-      { path: 'check-in', element: <ComingSoon title="Check-in" icon={QrCode} description="Scan a QR, or look up by member ID / mobile to check members in and out." /> },
+      { path: 'check-in', element: <CheckIn /> },
       { path: 'members', element: <MembersList /> },
       { path: 'members/new', element: <OnboardWizard /> },
       { path: 'payments', element: <ComingSoon title="Payments" icon={CreditCard} description="Collect payments, generate receipts and share them via WhatsApp / SMS / email." /> },

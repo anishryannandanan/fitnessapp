@@ -8,6 +8,7 @@ import { PackagesModule } from './modules/packages/packages.module';
 import { MembersModule } from './modules/members/members.module';
 import { MembershipsModule } from './modules/memberships/memberships.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -23,6 +24,7 @@ import { HealthController } from './health.controller';
     MembersModule,
     MembershipsModule,
     BillingModule,
+    AttendanceModule,
   ],
   controllers: [HealthController],
 })

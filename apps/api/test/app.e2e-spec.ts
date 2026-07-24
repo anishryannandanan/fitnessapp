@@ -293,4 +293,67 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Slice 4: Attendance -------------------------
+
+  describe('attendance', () => {
+    let managerToken: string;
+    let recToken: string;
+
+    beforeAll(async () => {
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('checks in the seeded member by code', async () => {
+      const res = await request(http)
+        .post('/api/v1/attendance/check-in')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ code: 'KCH-0001', method: 'member_id' });
+      expect(res.status).toBe(201);
+      expect(res.body.alreadyCheckedIn).toBe(false);
+      expect(res.body.member.code).toBe('KCH-0001');
+    });
+
+    it('a second check-in returns the open session (already_checked_in)', async () => {
+      const res = await request(http)
+        .post('/api/v1/attendance/check-in')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ code: 'KCH-0001' });
+      expect(res.status).toBe(201);
+      expect(res.body.warning).toBe('already_checked_in');
+    });
+
+    it('checks out and records a duration', async () => {
+      const member = await request(http)
+        .get('/api/v1/members?q=KCH-0001')
+        .set('Authorization', `Bearer ${managerToken}`);
+      const memberId = member.body[0].id;
+      const res = await request(http)
+        .post('/api/v1/attendance/check-out')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ memberId });
+      expect(res.status).toBe(200);
+      expect(res.body.checkOutAt).toBeTruthy();
+      expect(typeof res.body.durationMinutes).toBe('number');
+    });
+
+    it('lists attendance scoped to the branch', async () => {
+      const res = await request(http).get('/api/v1/attendance').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('peak-hours returns 24 buckets (manager)', async () => {
+      const res = await request(http).get('/api/v1/attendance/peak-hours').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.buckets).toHaveLength(24);
+      expect(res.body.total).toBeGreaterThanOrEqual(1);
+    });
+
+    it('peak-hours is forbidden for a receptionist (403)', async () => {
+      const res = await request(http).get('/api/v1/attendance/peak-hours').set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });
