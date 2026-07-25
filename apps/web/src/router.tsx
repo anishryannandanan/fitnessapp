@@ -10,6 +10,7 @@ import { RequireRole } from '@/components/RequireRole';
 import { RequireAuth } from '@/components/RequireAuth';
 import { RootRedirect } from '@/components/RootRedirect';
 import { Notifications } from '@/pages/shared/Notifications';
+import { MemberProfile } from '@/pages/shared/MemberProfile';
 import { PageLoader } from '@/components/ui/PageLoader';
 
 import { SignIn } from '@/pages/SignIn';
@@ -55,6 +56,15 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [{ index: true, element: <Notifications /> }],
+  },
+  {
+    path: '/members/:id',
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
+    children: [{ index: true, element: <MemberProfile /> }],
   },
 
   // ---- Owner ----
