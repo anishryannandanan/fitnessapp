@@ -195,6 +195,7 @@ model User {
   payrollRecords          PayrollRecord[]
   notifications           Notification[]
   notificationPreferences NotificationPreference[]
+  member                  Member?
 
   @@index([role])
 }
@@ -275,12 +276,14 @@ model Member {
   multiBranchAccess Boolean   @default(false)
   status            String    @default("active")
   joinedAt          DateTime  @default(now())
+  userId            String?   @unique
   createdById       String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   business    Business     @relation(fields: [businessId], references: [id])
   homeBranch  Branch       @relation(fields: [homeBranchId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
   memberships    Membership[]
   invoices       Invoice[]
   payments       Payment[]

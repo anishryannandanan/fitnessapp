@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { PrismaClient, UserRole, StaffType, PackageType, MembershipStatus } from '@prisma/client';
+import { PrismaClient, UserRole, StaffType, PackageType, MembershipStatus, Difficulty } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -173,6 +173,7 @@ async function main() {
         phone: '+919000000001',
         email: 'fathima.member@example.com',
         gender: 'female',
+        userId: member.id, // link the member record to the member's login account
         memberships: {
           create: {
             branchId: kochi.id,
@@ -200,6 +201,64 @@ async function main() {
         total: gymAnnual.price,
         amountPaid: 0,
         status: 'issued',
+      },
+    });
+
+    // Exercise library + a workout plan & diet plan assigned to the member.
+    const trainer = await prisma.user.findUnique({ where: { email: 'vishnu@fitnessworld.in' } });
+    const createdById = trainer?.id ?? member.id; // required field; fall back to any user
+
+    const exerciseSeeds = [
+      { name: 'Bench Press', muscleGroup: 'chest', equipment: 'barbell', difficulty: Difficulty.intermediate },
+      { name: 'Squat', muscleGroup: 'legs', equipment: 'barbell', difficulty: Difficulty.intermediate },
+      { name: 'Lat Pulldown', muscleGroup: 'back', equipment: 'cable', difficulty: Difficulty.beginner },
+    ];
+    const exercises = [];
+    for (const e of exerciseSeeds) {
+      const existingEx = await prisma.exercise.findFirst({ where: { businessId: business.id, name: e.name } });
+      exercises.push(existingEx ?? (await prisma.exercise.create({ data: { businessId: business.id, ...e } })));
+    }
+
+    await prisma.workoutPlan.create({
+      data: {
+        branchId: kochi.id,
+        createdById,
+        memberId: newMember.id,
+        name: 'Beginner Full Body',
+        goal: 'general_fitness',
+        weeks: 4,
+        daysPerWeek: 3,
+        exercises: {
+          create: exercises.map((ex, i) => ({
+            exerciseId: ex.id,
+            dayIndex: 1,
+            orderIndex: i,
+            sets: 3,
+            reps: '10',
+            restSec: 60,
+          })),
+        },
+      },
+    });
+
+    await prisma.dietPlan.create({
+      data: {
+        branchId: kochi.id,
+        createdById,
+        memberId: newMember.id,
+        name: 'Balanced 1800',
+        dailyCalories: 1800,
+        proteinG: 130,
+        carbsG: 180,
+        fatG: 55,
+        waterGoalMl: 3000,
+        meals: {
+          create: [
+            { mealType: 'breakfast', orderIndex: 0, title: 'Oats + Whey + Banana', calories: 420, proteinG: 35 },
+            { mealType: 'lunch', orderIndex: 1, title: 'Chicken + Rice + Salad', calories: 620, proteinG: 48 },
+            { mealType: 'dinner', orderIndex: 2, title: 'Paneer + Veggies', calories: 540, proteinG: 42 },
+          ],
+        },
       },
     });
   }

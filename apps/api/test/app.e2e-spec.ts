@@ -703,4 +703,57 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Member self-service (/me) -------------------------
+
+  describe('member self-service', () => {
+    let memberToken: string;
+    let managerToken: string;
+
+    beforeAll(async () => {
+      memberToken = (await login('fathima@example.com', 'Staff@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('GET /me/profile returns the linked member with memberships + invoices', async () => {
+      const res = await request(http).get('/api/v1/me/profile').set('Authorization', `Bearer ${memberToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.memberCode).toBe('KCH-0001');
+      expect(res.body.memberships.length).toBeGreaterThanOrEqual(1);
+      expect(res.body.invoices.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET /me/workout-plans returns the assigned plan with exercises', async () => {
+      const res = await request(http).get('/api/v1/me/workout-plans').set('Authorization', `Bearer ${memberToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      expect(res.body[0].exercises.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('GET /me/diet-plans returns the assigned diet plan', async () => {
+      const res = await request(http).get('/api/v1/me/diet-plans').set('Authorization', `Bearer ${memberToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+      expect(res.body[0].meals.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('POST /me/workout-logs logs a workout for the member (first-time PR)', async () => {
+      const plan = (await request(http).get('/api/v1/me/workout-plans').set('Authorization', `Bearer ${memberToken}`)).body[0];
+      const exerciseId = plan.exercises[0].exerciseId ?? plan.exercises[0].exercise?.id;
+      const res = await request(http)
+        .post('/api/v1/me/workout-logs')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({ rating: 5, sets: [{ exerciseId, setIndex: 0, weightGrams: 40000, reps: 10 }] });
+      expect(res.status).toBe(201);
+      expect(res.body.sets[0].isPr).toBe(true);
+
+      const history = await request(http).get('/api/v1/me/workout-history').set('Authorization', `Bearer ${memberToken}`);
+      expect(history.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('is forbidden for non-members (403 for a manager)', async () => {
+      const res = await request(http).get('/api/v1/me/profile').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });
