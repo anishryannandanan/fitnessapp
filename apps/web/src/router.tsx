@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import {
-  BarChart3, Wallet, UserCog, CreditCard, Dumbbell, Salad,
+  Wallet, UserCog, CreditCard, Dumbbell, Salad,
   LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
 } from 'lucide-react';
 
@@ -14,6 +14,7 @@ import { PageLoader } from '@/components/ui/PageLoader';
 
 import { SignIn } from '@/pages/SignIn';
 import { Branches } from '@/pages/owner/Branches';
+import { Reports } from '@/pages/owner/Reports';
 
 // Lazy-load the chart-heavy dashboard so the recharts bundle only downloads
 // when an Owner actually opens it (not for other roles or the initial load).
@@ -64,7 +65,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: lazyEl(<OwnerDashboard />) },
       { path: 'branches', element: <Branches /> },
-      { path: 'reports', element: <ComingSoon title="Reports" icon={BarChart3} description="Revenue, expense, profit, attendance, branch comparison and more — exportable to Excel, CSV and PDF." /> },
+      { path: 'reports', element: <Reports /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Consolidated revenue, expenses, payroll and outstanding dues across all branches." /> },
       { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage trainers, managers, receptionists and other staff across branches." /> },
     ],
@@ -80,7 +81,7 @@ export const router = createBrowserRouter([
       { path: 'members', element: <MembersList /> },
       { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage staff for your branch." /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Branch revenue, expenses and profit." /> },
-      { path: 'reports', element: <ComingSoon title="Reports" icon={BarChart3} description="Reports scoped to your branch." /> },
+      { path: 'reports', element: <Reports /> },
     ],
   },
 
