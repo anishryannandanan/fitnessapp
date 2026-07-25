@@ -12,6 +12,8 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { DashboardsModule } from './modules/dashboards/dashboards.module';
 import { WorkoutsModule } from './modules/workouts/workouts.module';
 import { DietModule } from './modules/diet/diet.module';
+import { ExpensesModule } from './modules/expenses/expenses.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -31,6 +33,8 @@ import { HealthController } from './health.controller';
     DashboardsModule,
     WorkoutsModule,
     DietModule,
+    ExpensesModule,
+    PayrollModule,
   ],
   controllers: [HealthController],
 })

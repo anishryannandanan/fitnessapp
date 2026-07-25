@@ -4,6 +4,7 @@ import type { AuthUser } from '../../common/types/auth-user';
 
 const createPrismaMock = () => ({
   payment: { aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 }, _count: 0 }) },
+  expense: { aggregate: jest.fn().mockResolvedValue({ _sum: { amount: 0 } }) },
   member: { count: jest.fn().mockResolvedValue(0) },
   membership: { count: jest.fn().mockResolvedValue(0) },
   attendanceLog: { count: jest.fn().mockResolvedValue(0) },
@@ -38,10 +39,12 @@ describe('DashboardsService', () => {
       prisma.invoice.findMany.mockResolvedValue([{ total: 150000, amountPaid: 0 }, { total: 200000, amountPaid: 50000 }]);
       prisma.branch.findMany.mockResolvedValue([{ id: 'b-kochi', name: 'Kochi', code: 'KCH' }]);
 
+      prisma.expense.aggregate.mockResolvedValue({ _sum: { amount: 200000 } });
       const res = await service.owner(owner, { branchId: 'all', period: 'month' });
       expect(res.scope).toBe('all');
       expect(res.kpis.revenue).toBe(500000);
-      expect(res.kpis.monthlyProfit).toBe(500000); // no expenses module yet
+      expect(res.kpis.expenses).toBe(200000);
+      expect(res.kpis.monthlyProfit).toBe(300000); // revenue - expenses
       expect(res.kpis.outstanding).toBe(300000); // 150000 + 150000
       expect(res.kpis.expiringMemberships).toBe(14);
       expect(res.kpis.dailyAttendance).toBe(42);

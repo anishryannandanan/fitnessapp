@@ -34,13 +34,14 @@ export function OwnerDashboard() {
   if (HAS_API && isLoading) return <PageLoader />;
 
   // ---- KPI values: live when available, else mock ----
-  let totalMembers: number, totalRevenue: number, profit: number, outstanding: number, expiring: number;
+  let totalMembers: number, totalRevenue: number, profit: number, expenses: number, outstanding: number, expiring: number;
   let comparison: { name: string; revenue: number }[];
 
   if (HAS_API && live) {
     totalMembers = live.kpis.totalMembers;
     totalRevenue = live.kpis.revenue;
     profit = live.kpis.monthlyProfit;
+    expenses = live.kpis.expenses;
     outstanding = live.kpis.outstanding;
     expiring = live.kpis.expiringMemberships;
     comparison = live.comparison.map((c) => ({ name: c.code, revenue: c.revenue / 100 }));
@@ -48,8 +49,8 @@ export function OwnerDashboard() {
     const branches = activeBranchId === 'all' ? BRANCHES : BRANCHES.filter((b) => b.id === activeBranchId);
     totalMembers = branches.reduce((s, b) => s + b.members, 0);
     totalRevenue = branches.reduce((s, b) => s + b.monthlyRevenue, 0);
-    const totalExpense = branches.reduce((s, b) => s + b.monthlyExpense, 0);
-    profit = totalRevenue - totalExpense;
+    expenses = branches.reduce((s, b) => s + b.monthlyExpense, 0);
+    profit = totalRevenue - expenses;
     outstanding = 4_30_000;
     expiring = 14;
     comparison = BRANCHES.map((b) => ({ name: b.code, revenue: b.monthlyRevenue / 100 }));
@@ -65,13 +66,13 @@ export function OwnerDashboard() {
       <div className="grid grid-cols-2 gap-3">
         <KpiCard label="Total Members" value={totalMembers.toLocaleString('en-IN')} />
         <KpiCard label="Revenue (MTD)" value={formatMoney(totalRevenue)} />
+        <KpiCard label="Expenses (MTD)" value={formatMoney(expenses)} />
         <KpiCard label="Profit (MTD)" value={formatMoney(profit)} />
-        <KpiCard label="Outstanding" value={formatMoney(outstanding)} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
+        <KpiCard label="Outstanding" value={formatMoney(outstanding)} />
         <KpiCard label="Expiring (7d)" value={String(expiring)} />
-        <KpiCard label="Branches" value={String(comparison.length)} />
       </div>
 
       {!HAS_API && (

@@ -472,4 +472,81 @@ describe('FitCore API (e2e)', () => {
       expect(res.body.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // ------------------------- Expenses & Payroll -------------------------
+
+  describe('expenses & payroll', () => {
+    let managerToken: string;
+    let recToken: string;
+    let ownerToken: string;
+    let staffUserId: string;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      // Use the manager's own user id as the payroll subject for the demo.
+      const me = await request(http).get('/api/v1/auth/me').set('Authorization', `Bearer ${managerToken}`);
+      staffUserId = me.body.id;
+    });
+
+    it('manager records an expense', async () => {
+      const res = await request(http)
+        .post('/api/v1/expenses')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ category: 'electricity', amount: 800000, vendor: 'KSEB' });
+      expect(res.status).toBe(201);
+      expect(res.body.category).toBe('electricity');
+    });
+
+    it('receptionist cannot record an expense (403)', async () => {
+      const res = await request(http)
+        .post('/api/v1/expenses')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ category: 'misc', amount: 1000 });
+      expect(res.status).toBe(403);
+    });
+
+    it('finance/profit returns income, expenses and profit', async () => {
+      const res = await request(http).get('/api/v1/finance/profit').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('income');
+      expect(res.body).toHaveProperty('expenses');
+      expect(res.body.profit).toBe(res.body.income - res.body.expenses);
+    });
+
+    it('dashboard profit reflects expenses (profit = revenue - expenses)', async () => {
+      const res = await request(http).get('/api/v1/dashboard/branch').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.kpis).toHaveProperty('expenses');
+      expect(res.body.kpis.monthlyProfit).toBe(res.body.kpis.revenue - res.body.kpis.expenses);
+    });
+
+    it('payroll: create -> approve -> pay (records a salary expense)', async () => {
+      const create = await request(http)
+        .post('/api/v1/payroll')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ staffUserId, periodStart: '2026-07-01', periodEnd: '2026-07-31', baseAmount: 3000000, bonus: 200000, deduction: 100000 });
+      expect(create.status).toBe(201);
+      expect(create.body.netAmount).toBe(3100000);
+      const id = create.body.id;
+
+      const approve = await request(http).post(`/api/v1/payroll/${id}/approve`).set('Authorization', `Bearer ${managerToken}`);
+      expect(approve.status).toBe(201);
+      expect(approve.body.status).toBe('approved');
+
+      const pay = await request(http).post(`/api/v1/payroll/${id}/pay`).set('Authorization', `Bearer ${managerToken}`);
+      expect(pay.status).toBe(201);
+      expect(pay.body.status).toBe('paid');
+
+      // A salary expense should now exist.
+      const expenses = await request(http).get('/api/v1/expenses?category=salary').set('Authorization', `Bearer ${managerToken}`);
+      expect(expenses.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('payroll is forbidden for a receptionist (403)', async () => {
+      const res = await request(http).get('/api/v1/payroll').set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });

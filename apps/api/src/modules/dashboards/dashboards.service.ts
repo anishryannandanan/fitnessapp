@@ -48,10 +48,14 @@ export class DashboardsService {
   private async kpisFor(branchId: string | undefined, period: Period) {
     const { start } = periodRange(period);
     const now = new Date();
-    const [revenueAgg, members, expiring, checkInsToday, outstanding] = await Promise.all([
+    const [revenueAgg, expenseAgg, members, expiring, checkInsToday, outstanding] = await Promise.all([
       this.prisma.payment.aggregate({
         _sum: { amount: true },
         where: { status: 'paid', paidAt: { gte: start }, ...(branchId ? { branchId } : {}) },
+      }),
+      this.prisma.expense.aggregate({
+        _sum: { amount: true },
+        where: { expenseDate: { gte: start }, ...(branchId ? { branchId } : {}) },
       }),
       this.prisma.member.count({ where: { ...(branchId ? { homeBranchId: branchId } : {}) } }),
       this.prisma.membership.count({
@@ -68,11 +72,12 @@ export class DashboardsService {
     ]);
 
     const revenue = revenueAgg._sum.amount ?? 0;
+    const expenses = expenseAgg._sum.amount ?? 0;
     return {
       totalMembers: members,
       revenue, // minor units, recognized in the period
-      // No expense module yet, so profit == recognized revenue for now.
-      monthlyProfit: revenue,
+      expenses, // minor units, in the period
+      monthlyProfit: revenue - expenses, // real profit now that expenses exist
       outstanding,
       expiringMemberships: expiring,
       dailyAttendance: checkInsToday,
