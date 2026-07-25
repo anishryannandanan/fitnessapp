@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
@@ -20,6 +21,7 @@ const statusStyle: Record<string, string> = {
 export function MembersList() {
   const user = useAuth((s) => s.user);
   const token = useAuth((s) => s.token);
+  const navigate = useNavigate();
   const branchId = user?.role === 'owner' ? null : user?.branchId;
   const [search, setSearch] = useState('');
 
@@ -54,23 +56,25 @@ export function MembersList() {
 
       <div className="space-y-2">
         {members.map((m) => (
-          <Card key={m.id} className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-sm font-bold text-muted">
-              {m.name.charAt(0)}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate font-medium text-text">{m.name}</div>
-              <div className="text-xs text-muted">{m.code} · {m.packageName}</div>
-            </div>
-            <div className="flex flex-col items-end gap-1">
-              <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium capitalize', statusStyle[m.status])}>
-                {m.status}
-              </span>
-              {m.duesMinor > 0 && (
-                <span className="text-[11px] font-medium text-danger">Due {formatMoney(m.duesMinor)}</span>
-              )}
-            </div>
-          </Card>
+          <button key={m.id} onClick={() => navigate(`/members/${m.id}`)} className="w-full text-left">
+            <Card className="flex items-center gap-3 transition hover:border-primary/40">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-2 text-sm font-bold text-muted">
+                {m.name.charAt(0)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-text">{m.name}</div>
+                <div className="text-xs text-muted">{m.code} · {m.packageName}</div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium capitalize', statusStyle[m.status])}>
+                  {m.status}
+                </span>
+                {m.duesMinor > 0 && (
+                  <span className="text-[11px] font-medium text-danger">Due {formatMoney(m.duesMinor)}</span>
+                )}
+              </div>
+            </Card>
+          </button>
         ))}
       </div>
     </div>
