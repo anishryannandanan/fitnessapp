@@ -1,0 +1,57 @@
+# FitCore self-contained stack for a VPS.
+# Only the web container is published (to localhost) — put Caddy in front of it.
+name: fitcore
+
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fitcore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitcore}
+      POSTGRES_DB: ${POSTGRES_DB:-fitcore}
+    volumes:
+      - fitcore_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitcore}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-fitcore}:${POSTGRES_PASSWORD:-fitcore}@postgres:5432/${POSTGRES_DB:-fitcore}?schema=public
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-15m}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      CORS_ORIGIN: ${PUBLIC_URL}
+      SEED_ON_START: ${SEED_ON_START:-true}
+      SEED_OWNER_EMAIL: ${SEED_OWNER_EMAIL:-owner@fitnessworld.in}
+      SEED_OWNER_PASSWORD: ${SEED_OWNER_PASSWORD:-Owner@123}
+      SEED_DEFAULT_PASSWORD: ${SEED_DEFAULT_PASSWORD:-Staff@123}
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        # Same-origin: the browser calls PUBLIC_URL/api/v1/... which nginx proxies to the API.
+        VITE_API_URL: ${PUBLIC_URL}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      # Publish only to localhost; Caddy on the host reverse-proxies to this.
+      - "127.0.0.1:${WEB_PORT:-8090}:80"
+
+volumes:
+  fitcore_pgdata:
