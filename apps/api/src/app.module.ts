@@ -14,6 +14,7 @@ import { WorkoutsModule } from './modules/workouts/workouts.module';
 import { DietModule } from './modules/diet/diet.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { HealthController } from './health.controller';
 
@@ -36,6 +37,7 @@ import { HealthController } from './health.controller';
     DietModule,
     ExpensesModule,
     PayrollModule,
+    ReportsModule,
     NotificationsModule,
   ],
   controllers: [HealthController],
