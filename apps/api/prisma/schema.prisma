@@ -289,6 +289,8 @@ model Member {
   payments       Payment[]
   attendanceLogs AttendanceLog[]
   workoutLogs    WorkoutLog[]
+  measurements   Measurement[]
+  progressPhotos ProgressPhoto[]
 
   @@unique([homeBranchId, memberCode])
   @@index([homeBranchId, status])
@@ -609,4 +611,42 @@ model NotificationPreference {
 
   @@unique([userId, type, channel])
   @@index([userId])
+}
+
+
+// ------------------------- Slice: Progress tracking -------------------------
+
+model Measurement {
+  id           String   @id @default(uuid())
+  memberId     String
+  recordedById String?
+  recordedAt   DateTime @default(now())
+  weightG      Int? // grams
+  bodyFatPct   Float?
+  musclePct    Float?
+  waistCm      Float?
+  chestCm      Float?
+  armsCm       Float?
+  hipsCm       Float?
+  thighsCm     Float?
+  note         String?
+  createdAt    DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, recordedAt])
+}
+
+model ProgressPhoto {
+  id        String   @id @default(uuid())
+  memberId  String
+  photoUrl  String
+  pose      String // front / side / back
+  takenAt   DateTime @default(now())
+  note      String?
+  createdAt DateTime @default(now())
+
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, takenAt])
 }

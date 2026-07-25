@@ -3,10 +3,26 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../common/types/auth-user';
 import { LogMyWorkoutDto } from './dto/log-my-workout.dto';
+import { ProgressService } from '../progress/progress.service';
+import { CreateMeasurementDto } from '../progress/dto/create-measurement.dto';
 
 @Injectable()
 export class MeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly progress: ProgressService,
+  ) {}
+
+  // ---- Progress (member self-service) ----
+  async measurements(user: AuthUser) {
+    const member = await this.resolveMember(user);
+    return this.progress.listMeasurements(member.id);
+  }
+
+  async addMeasurement(user: AuthUser, dto: CreateMeasurementDto) {
+    const member = await this.resolveMember(user);
+    return this.progress.addMeasurement(member.id, user.sub, dto);
+  }
 
   /** Resolve the Member record linked to the current user (member self-service). */
   private async resolveMember(user: AuthUser) {

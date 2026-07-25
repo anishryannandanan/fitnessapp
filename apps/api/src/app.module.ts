@@ -19,6 +19,7 @@ import { ReportsModule } from './modules/reports/reports.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { RemindersModule } from './modules/reminders/reminders.module';
 import { MeModule } from './modules/me/me.module';
+import { ProgressModule } from './modules/progress/progress.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -44,6 +45,7 @@ import { HealthController } from './health.controller';
     ReportsModule,
     NotificationsModule,
     RemindersModule,
+    ProgressModule,
     MeModule,
   ],
   controllers: [HealthController],

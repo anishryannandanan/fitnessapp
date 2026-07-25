@@ -20,7 +20,8 @@ describe('MeService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     prisma = createPrismaMock();
-    service = new MeService(prisma as any);
+    const progress = { listMeasurements: jest.fn().mockResolvedValue([]), addMeasurement: jest.fn().mockResolvedValue({}) };
+    service = new MeService(prisma as any, progress as any);
   });
 
   it('404 when the account has no linked member record', async () => {
