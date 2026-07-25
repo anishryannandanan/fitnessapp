@@ -1,0 +1,121 @@
+import { Suspense, lazy } from 'react';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import {
+  BarChart3, Wallet, UserCog, CreditCard, Dumbbell, Salad,
+  LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
+} from 'lucide-react';
+
+import { AppShell } from '@/components/layout/AppShell';
+import { RequireRole } from '@/components/RequireRole';
+import { RootRedirect } from '@/components/RootRedirect';
+import { PageLoader } from '@/components/ui/PageLoader';
+
+import { SignIn } from '@/pages/SignIn';
+import { Branches } from '@/pages/owner/Branches';
+
+// Lazy-load the chart-heavy dashboard so the recharts bundle only downloads
+// when an Owner actually opens it (not for other roles or the initial load).
+const OwnerDashboard = lazy(() =>
+  import('@/pages/owner/OwnerDashboard').then((m) => ({ default: m.OwnerDashboard }))
+);
+
+const lazyEl = (el: React.ReactNode) => <Suspense fallback={<PageLoader />}>{el}</Suspense>;
+import { ManagerDashboard } from '@/pages/branch/ManagerDashboard';
+import { ReceptionHome } from '@/pages/reception/ReceptionHome';
+import { OnboardWizard } from '@/pages/reception/OnboardWizard';
+import { CheckIn } from '@/pages/reception/CheckIn';
+import { TrainerToday } from '@/pages/trainer/TrainerToday';
+import { MemberHome } from '@/pages/member/MemberHome';
+import { MembersList } from '@/pages/shared/MembersList';
+import { ComingSoon } from '@/pages/shared/ComingSoon';
+import type { Role } from '@/lib/types';
+
+// Wrap a route group's element with its role guard + app shell layout.
+function roleShell(role: Role) {
+  return (
+    <RequireRole role={role}>
+      <AppShell />
+    </RequireRole>
+  );
+}
+
+export const router = createBrowserRouter([
+  { path: '/', element: <RootRedirect /> },
+  { path: '/sign-in', element: <SignIn /> },
+
+  // ---- Owner ----
+  {
+    path: '/owner',
+    element: roleShell('owner'),
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: lazyEl(<OwnerDashboard />) },
+      { path: 'branches', element: <Branches /> },
+      { path: 'reports', element: <ComingSoon title="Reports" icon={BarChart3} description="Revenue, expense, profit, attendance, branch comparison and more — exportable to Excel, CSV and PDF." /> },
+      { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Consolidated revenue, expenses, payroll and outstanding dues across all branches." /> },
+      { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage trainers, managers, receptionists and other staff across branches." /> },
+    ],
+  },
+
+  // ---- Branch Manager ----
+  {
+    path: '/branch',
+    element: roleShell('manager'),
+    children: [
+      { index: true, element: <Navigate to="dashboard" replace /> },
+      { path: 'dashboard', element: <ManagerDashboard /> },
+      { path: 'members', element: <MembersList /> },
+      { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage staff for your branch." /> },
+      { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Branch revenue, expenses and profit." /> },
+      { path: 'reports', element: <ComingSoon title="Reports" icon={BarChart3} description="Reports scoped to your branch." /> },
+    ],
+  },
+
+  // ---- Receptionist ----
+  {
+    path: '/reception',
+    element: roleShell('receptionist'),
+    children: [
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <ReceptionHome /> },
+      { path: 'check-in', element: <CheckIn /> },
+      { path: 'members', element: <MembersList /> },
+      { path: 'members/new', element: <OnboardWizard /> },
+      { path: 'payments', element: <ComingSoon title="Payments" icon={CreditCard} description="Collect payments, generate receipts and share them via WhatsApp / SMS / email." /> },
+      { path: 'enquiries', element: <ComingSoon title="Enquiries" icon={ClipboardList} description="Capture and follow up on leads, then convert them into members." /> },
+    ],
+  },
+
+  // ---- Trainer ----
+  {
+    path: '/trainer',
+    element: roleShell('trainer'),
+    children: [
+      { index: true, element: <Navigate to="today" replace /> },
+      { path: 'today', element: <TrainerToday /> },
+      { path: 'members', element: <MembersList /> },
+      { path: 'workouts', element: <ComingSoon title="Workouts" icon={Dumbbell} description="Build workout templates and weekly plans from the exercise library, and assign them." /> },
+      { path: 'diet', element: <ComingSoon title="Diet" icon={Salad} description="Create meal plans with macros and water goals for your members." /> },
+      { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Track measurements and view progress charts and before/after photos." /> },
+    ],
+  },
+
+  // ---- Member ----
+  {
+    path: '/member',
+    element: roleShell('member'),
+    children: [
+      { index: true, element: <Navigate to="home" replace /> },
+      { path: 'home', element: <MemberHome /> },
+      { path: 'workout', element: <ComingSoon title="Workout" icon={Dumbbell} description="Follow today's plan, log weights and reps, and save your personal records." /> },
+      { path: 'diet', element: <ComingSoon title="Diet" icon={Salad} description="Mark meals complete, upload meal photos and track your water intake." /> },
+      { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Record measurements, view charts and compare before/after photos." /> },
+      { path: 'chat', element: <ComingSoon title="Chat" icon={MessageSquare} description="Message your assigned trainer and request plan changes." /> },
+      { path: 'membership', element: <ComingSoon title="Membership" icon={Package} description="View your package, expiry and dues, and pay online." /> },
+      { path: 'profile', element: <ComingSoon title="Profile" icon={User} description="Manage your details, notification preferences and theme." /> },
+      { path: 'schedule', element: <ComingSoon title="PT Schedule" icon={CalendarClock} description="Upcoming personal training sessions." /> },
+    ],
+  },
+
+  { path: '*', element: <Navigate to="/" replace /> },
+]);

@@ -1,0 +1,486 @@
+// FitCore — Prisma schema (Slice 1 + Slice 2: identity, branches, members & sales)
+// Full data model is specified in docs/06-database-schema.md.
+// Money is stored as integer minor units (paise).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  owner
+  manager
+  receptionist
+  trainer
+  dietician
+  member
+}
+
+enum StaffType {
+  manager
+  receptionist
+  trainer
+  dietician
+  cleaner
+  sales
+  maintenance
+}
+
+enum Gender {
+  male
+  female
+  other
+  undisclosed
+}
+
+enum PackageType {
+  trainer
+  non_trainer
+  custom
+}
+
+enum MembershipStatus {
+  active
+  expired
+  frozen
+  cancelled
+  pending
+}
+
+enum PaymentMethod {
+  cash
+  card
+  upi
+  bank_transfer
+  online_gateway
+  installment
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  partially_paid
+  failed
+  refunded
+  void
+}
+
+enum InvoiceStatus {
+  draft
+  issued
+  paid
+  partially_paid
+  overdue
+  void
+}
+
+enum AttendanceMethod {
+  qr
+  member_id
+  mobile
+  manual
+}
+
+enum Difficulty {
+  beginner
+  intermediate
+  advanced
+}
+
+// Exactly ONE business exists (single-business constraint, see docs).
+model Business {
+  id        String   @id @default(uuid())
+  name      String
+  legalName String?
+  currency  String   @default("INR") @db.Char(3)
+  timezone  String   @default("Asia/Kolkata")
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branches Branch[]
+  users    User[]
+  packages Package[]
+  members  Member[]
+}
+
+model Branch {
+  id         String   @id @default(uuid())
+  businessId String
+  name       String
+  code       String
+  address    String?
+  phone      String?
+  email      String?
+  timezone   String   @default("Asia/Kolkata")
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business       Business       @relation(fields: [businessId], references: [id])
+  userBranches   UserBranch[]
+  staffProfiles  StaffProfile[]
+  packages       Package[]
+  members        Member[]
+  memberships    Membership[]
+  invoices       Invoice[]
+  payments       Payment[]
+  attendanceLogs AttendanceLog[]
+
+  @@unique([businessId, code])
+  @@index([businessId])
+  @@index([isActive])
+}
+
+model User {
+  id           String   @id @default(uuid())
+  businessId   String
+  role         UserRole
+  email        String   @unique
+  phone        String?  @unique
+  passwordHash String?
+  fullName     String
+  avatarColor  String?
+  isActive     Boolean  @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business     Business      @relation(fields: [businessId], references: [id])
+  userBranches UserBranch[]
+  staffProfile StaffProfile?
+
+  @@index([role])
+}
+
+// Staff <-> branch assignment. Owner has NO rows here (implicit all-branches).
+model UserBranch {
+  id        String   @id @default(uuid())
+  userId    String
+  branchId  String
+  isPrimary Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+}
+
+model StaffProfile {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  branchId       String
+  staffType      StaffType
+  specialization String?
+  dateOfJoining  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@index([staffType])
+}
+
+
+// ------------------------- Slice 2: Members & sales -------------------------
+
+// A membership package. branchId = null means available at all branches.
+model Package {
+  id              String      @id @default(uuid())
+  businessId      String
+  branchId        String?
+  name            String
+  type            PackageType
+  description     String?
+  durationDays    Int
+  price           Int // minor units (paise)
+  taxPercent      Int         @default(0)
+  ptSessions      Int?
+  includesTrainer Boolean     @default(false)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id])
+  branch      Branch?      @relation(fields: [branchId], references: [id])
+  memberships Membership[]
+
+  @@index([businessId, isActive])
+  @@index([branchId])
+  @@index([type])
+}
+
+model Member {
+  id                String    @id @default(uuid())
+  businessId        String
+  homeBranchId      String
+  memberCode        String
+  fullName          String
+  gender            Gender?
+  dob               DateTime?
+  email             String?
+  phone             String?
+  address           String?
+  photoUrl          String?
+  multiBranchAccess Boolean   @default(false)
+  status            String    @default("active")
+  joinedAt          DateTime  @default(now())
+  createdById       String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  business    Business     @relation(fields: [businessId], references: [id])
+  homeBranch  Branch       @relation(fields: [homeBranchId], references: [id])
+  memberships    Membership[]
+  invoices       Invoice[]
+  payments       Payment[]
+  attendanceLogs AttendanceLog[]
+  workoutLogs    WorkoutLog[]
+
+  @@unique([homeBranchId, memberCode])
+  @@index([homeBranchId, status])
+  @@index([phone])
+  @@index([fullName])
+}
+
+model Membership {
+  id            String           @id @default(uuid())
+  memberId      String
+  branchId      String
+  packageId     String
+  startDate     DateTime
+  endDate       DateTime
+  priceSnapshot Int // price at purchase, immutable (minor units)
+  taxSnapshot   Int              @default(0)
+  sessionsTotal Int?
+  sessionsUsed  Int              @default(0)
+  status        MembershipStatus @default(active)
+  isRenewalOf   String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  member   Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  branch   Branch    @relation(fields: [branchId], references: [id])
+  package  Package   @relation(fields: [packageId], references: [id])
+  invoices Invoice[]
+
+  @@index([memberId])
+  @@index([branchId, status])
+  @@index([endDate])
+}
+
+
+// ------------------------- Slice 3: Payments & billing -------------------------
+
+model Invoice {
+  id            String        @id @default(uuid())
+  branchId      String
+  memberId      String
+  membershipId  String?
+  invoiceNumber String        @unique
+  subtotal      Int // minor units
+  tax           Int           @default(0)
+  total         Int
+  amountPaid    Int           @default(0)
+  status        InvoiceStatus @default(issued)
+  dueDate       DateTime?
+  issuedById    String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  branch     Branch      @relation(fields: [branchId], references: [id])
+  member     Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id])
+  payments   Payment[]
+
+  @@index([memberId])
+  @@index([branchId, status])
+  @@index([dueDate])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  branchId      String
+  invoiceId     String?
+  memberId      String
+  amount        Int // minor units
+  method        PaymentMethod
+  status        PaymentStatus @default(paid)
+  reference     String?
+  paidAt        DateTime      @default(now())
+  collectedById String?
+  notes         String?
+  createdAt     DateTime      @default(now())
+
+  branch  Branch   @relation(fields: [branchId], references: [id])
+  invoice Invoice? @relation(fields: [invoiceId], references: [id])
+  member  Member   @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([memberId])
+  @@index([branchId, paidAt])
+  @@index([status])
+}
+
+
+// ------------------------- Slice 4: Attendance -------------------------
+
+model AttendanceLog {
+  id              String           @id @default(uuid())
+  branchId        String // branch where the check-in happened (may differ from home)
+  memberId        String
+  method          AttendanceMethod
+  checkInAt       DateTime         @default(now())
+  checkOutAt      DateTime?
+  durationMinutes Int?
+  recordedById    String?
+  createdAt       DateTime         @default(now())
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  member Member @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([branchId, checkInAt])
+  @@index([memberId, checkInAt])
+}
+
+
+// ------------------------- Slice 5: Workouts & Diet -------------------------
+
+// Exercise library — shared across the business (not branch-scoped).
+model Exercise {
+  id             String      @id @default(uuid())
+  businessId     String
+  name           String
+  muscleGroup    String?
+  equipment      String?
+  difficulty     Difficulty  @default(beginner)
+  instructions   String?
+  imageUrl       String?
+  videoUrl       String?
+  defaultSets    Int?
+  defaultReps    Int?
+  defaultRestSec Int?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  planExercises WorkoutPlanExercise[]
+
+  @@index([businessId])
+  @@index([muscleGroup])
+}
+
+model WorkoutPlan {
+  id           String   @id @default(uuid())
+  branchId     String
+  createdById  String // trainer user id
+  memberId     String? // null => reusable template
+  name         String
+  goal         String?
+  weeks        Int      @default(4)
+  daysPerWeek  Int      @default(3)
+  isTemplate   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  exercises WorkoutPlanExercise[]
+  logs      WorkoutLog[]
+
+  @@index([branchId])
+  @@index([memberId])
+  @@index([createdById])
+}
+
+model WorkoutPlanExercise {
+  id         String  @id @default(uuid())
+  planId     String
+  exerciseId String
+  dayIndex   Int     @default(1)
+  orderIndex Int     @default(0)
+  sets       Int     @default(3)
+  reps       String  @default("10")
+  restSec    Int     @default(60)
+  notes      String?
+
+  plan     WorkoutPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  exercise Exercise    @relation(fields: [exerciseId], references: [id])
+
+  @@index([planId])
+}
+
+model WorkoutLog {
+  id              String   @id @default(uuid())
+  memberId        String
+  planId          String?
+  performedAt     DateTime @default(now())
+  rating          Int?
+  notes           String?
+  durationMinutes Int?
+  createdAt       DateTime @default(now())
+
+  member Member       @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  plan   WorkoutPlan? @relation(fields: [planId], references: [id])
+  sets   WorkoutLogSet[]
+
+  @@index([memberId, performedAt])
+}
+
+model WorkoutLogSet {
+  id           String  @id @default(uuid())
+  workoutLogId String
+  exerciseId   String
+  setIndex     Int
+  weightGrams  Int     @default(0)
+  reps         Int     @default(0)
+  isPr         Boolean @default(false)
+  completed    Boolean @default(true)
+
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([exerciseId])
+}
+
+model DietPlan {
+  id            String   @id @default(uuid())
+  branchId      String
+  createdById   String
+  memberId      String?
+  name          String
+  dailyCalories Int?
+  proteinG      Int?
+  carbsG        Int?
+  fatG          Int?
+  waterGoalMl   Int?
+  isTemplate    Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  meals DietPlanMeal[]
+
+  @@index([branchId])
+  @@index([memberId])
+}
+
+model DietPlanMeal {
+  id         String @id @default(uuid())
+  dietPlanId String
+  mealType   String // breakfast/lunch/dinner/snack
+  orderIndex Int    @default(0)
+  title      String
+  calories   Int?
+  proteinG   Int?
+  carbsG     Int?
+  fatG       Int?
+
+  dietPlan DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
+
+  @@index([dietPlanId])
+}
