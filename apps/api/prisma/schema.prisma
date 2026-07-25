@@ -109,6 +109,25 @@ enum PayrollStatus {
   paid
 }
 
+enum NotificationType {
+  workout_reminder
+  meal_reminder
+  water_reminder
+  membership_expiry
+  payment_due
+  birthday
+  announcement
+  trainer_message
+  system
+}
+
+enum NotificationChannel {
+  push
+  sms
+  email
+  whatsapp
+}
+
 // Exactly ONE business exists (single-business constraint, see docs).
 model Business {
   id        String   @id @default(uuid())
@@ -170,10 +189,12 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  business       Business        @relation(fields: [businessId], references: [id])
-  userBranches   UserBranch[]
-  staffProfile   StaffProfile?
-  payrollRecords PayrollRecord[]
+  business                Business                 @relation(fields: [businessId], references: [id])
+  userBranches            UserBranch[]
+  staffProfile            StaffProfile?
+  payrollRecords          PayrollRecord[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@index([role])
 }
@@ -550,4 +571,39 @@ model PayrollRecord {
 
   @@index([branchId, periodStart])
   @@index([staffUserId, periodStart])
+}
+
+
+// ------------------------- Slice: Notifications -------------------------
+
+model Notification {
+  id              String           @id @default(uuid())
+  businessId      String
+  branchId        String?
+  recipientUserId String
+  type            NotificationType
+  title           String
+  body            String?
+  data            Json?
+  readAt          DateTime?
+  createdById     String?
+  createdAt       DateTime         @default(now())
+
+  recipient User @relation(fields: [recipientUserId], references: [id], onDelete: Cascade)
+
+  @@index([recipientUserId, readAt])
+  @@index([createdAt])
+}
+
+model NotificationPreference {
+  id      String              @id @default(uuid())
+  userId  String
+  type    NotificationType
+  channel NotificationChannel
+  enabled Boolean             @default(true)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, channel])
+  @@index([userId])
 }
