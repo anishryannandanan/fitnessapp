@@ -1,13 +1,25 @@
 import { Bell, LogOut, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/stores/auth';
+import { HAS_API } from '@/lib/env';
+import { fetchUnreadCount } from '@/lib/notificationsApi';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BranchSwitcher } from './BranchSwitcher';
 
 export function TopBar() {
   const user = useAuth((s) => s.user);
+  const token = useAuth((s) => s.token);
   const logout = useAuth((s) => s.logout);
   const navigate = useNavigate();
+
+  const { data: unread } = useQuery({
+    queryKey: ['unread-count'],
+    queryFn: () => fetchUnreadCount(token!),
+    enabled: HAS_API && !!token,
+    refetchInterval: 60_000,
+  });
+  const unreadCount = HAS_API ? (unread?.count ?? 0) : 2; // demo shows a dot
 
   const handleLogout = () => {
     logout();
@@ -31,9 +43,17 @@ export function TopBar() {
       <button aria-label="Search" className="flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-text">
         <Search size={20} />
       </button>
-      <button aria-label="Notifications" className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-text">
+      <button
+        onClick={() => navigate('/notifications')}
+        aria-label="Notifications"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full text-muted hover:bg-surface-2 hover:text-text"
+      >
         <Bell size={20} />
-        <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-danger" />
+        {unreadCount > 0 && (
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
       </button>
       <ThemeToggle />
 
