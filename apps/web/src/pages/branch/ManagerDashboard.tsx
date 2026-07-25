@@ -25,6 +25,7 @@ export function ManagerDashboard() {
     ? {
         members: live.kpis.totalMembers,
         revenue: live.kpis.revenue,
+        expenses: live.kpis.expenses,
         profit: live.kpis.monthlyProfit,
         expiring: live.kpis.expiringMemberships,
         attendance: live.kpis.dailyAttendance,
@@ -33,6 +34,7 @@ export function ManagerDashboard() {
     : {
         members: branch.members,
         revenue: branch.monthlyRevenue,
+        expenses: branch.monthlyExpense,
         profit: branch.monthlyRevenue - branch.monthlyExpense,
         expiring: 14,
         attendance: 42,
@@ -45,6 +47,7 @@ export function ManagerDashboard() {
       <div className="grid grid-cols-2 gap-3">
         <KpiCard label="Members" value={k.members.toLocaleString('en-IN')} />
         <KpiCard label="Revenue (MTD)" value={formatMoney(k.revenue)} />
+        <KpiCard label="Expenses (MTD)" value={formatMoney(k.expenses)} />
         <KpiCard label="Profit (MTD)" value={formatMoney(k.profit)} />
         <KpiCard label="Outstanding" value={formatMoney(k.outstanding)} />
         <KpiCard label="Check-ins today" value={String(k.attendance)} />

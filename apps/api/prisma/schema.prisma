@@ -91,6 +91,24 @@ enum Difficulty {
   advanced
 }
 
+enum ExpenseCategory {
+  rent
+  electricity
+  internet
+  equipment
+  repairs
+  cleaning
+  marketing
+  salary
+  misc
+}
+
+enum PayrollStatus {
+  draft
+  approved
+  paid
+}
+
 // Exactly ONE business exists (single-business constraint, see docs).
 model Business {
   id        String   @id @default(uuid())
@@ -130,6 +148,8 @@ model Branch {
   invoices       Invoice[]
   payments       Payment[]
   attendanceLogs AttendanceLog[]
+  expenses       Expense[]
+  payrollRecords PayrollRecord[]
 
   @@unique([businessId, code])
   @@index([businessId])
@@ -150,9 +170,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  business     Business      @relation(fields: [businessId], references: [id])
-  userBranches UserBranch[]
-  staffProfile StaffProfile?
+  business       Business        @relation(fields: [businessId], references: [id])
+  userBranches   UserBranch[]
+  staffProfile   StaffProfile?
+  payrollRecords PayrollRecord[]
 
   @@index([role])
 }
@@ -483,4 +504,50 @@ model DietPlanMeal {
   dietPlan DietPlan @relation(fields: [dietPlanId], references: [id], onDelete: Cascade)
 
   @@index([dietPlanId])
+}
+
+
+// ------------------------- Slice: Expenses & Payroll -------------------------
+
+model Expense {
+  id          String          @id @default(uuid())
+  branchId    String
+  category    ExpenseCategory
+  amount      Int // minor units
+  expenseDate DateTime        @default(now())
+  vendor      String?
+  note        String?
+  receiptUrl  String?
+  createdById String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId, expenseDate])
+  @@index([category])
+}
+
+model PayrollRecord {
+  id               String        @id @default(uuid())
+  branchId         String
+  staffUserId      String
+  periodStart      DateTime
+  periodEnd        DateTime
+  baseAmount       Int           @default(0)
+  commissionAmount Int           @default(0)
+  bonus            Int           @default(0)
+  deduction        Int           @default(0)
+  netAmount        Int           @default(0)
+  status           PayrollStatus @default(draft)
+  approvedById     String?
+  paidAt           DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id])
+  staff  User   @relation(fields: [staffUserId], references: [id])
+
+  @@index([branchId, periodStart])
+  @@index([staffUserId, periodStart])
 }

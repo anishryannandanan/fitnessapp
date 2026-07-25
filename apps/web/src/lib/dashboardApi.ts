@@ -3,6 +3,7 @@ import { apiFetch } from './authApi';
 export interface DashboardKpis {
   totalMembers: number;
   revenue: number; // minor units
+  expenses: number; // minor units
   monthlyProfit: number;
   outstanding: number;
   expiringMemberships: number;
