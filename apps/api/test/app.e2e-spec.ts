@@ -615,4 +615,38 @@ describe('FitCore API (e2e)', () => {
       expect(res.body.enabled).toBe(false);
     });
   });
+
+  // ------------------------- Scheduled reminders -------------------------
+
+  describe('reminders', () => {
+    let managerToken: string;
+    let recToken: string;
+
+    beforeAll(async () => {
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('manager runs the reminder sweep and it creates digest notifications', async () => {
+      // Seeded member KCH-0001 has an unpaid invoice -> a payment_due digest is expected.
+      const run = await request(http).post('/api/v1/reminders/run').set('Authorization', `Bearer ${managerToken}`);
+      expect(run.status).toBe(200);
+      expect(run.body.created).toBeGreaterThanOrEqual(1);
+
+      const notifs = await request(http).get('/api/v1/notifications').set('Authorization', `Bearer ${managerToken}`);
+      const hasDigest = notifs.body.some((n: any) => n.type === 'payment_due' || n.type === 'membership_expiry');
+      expect(hasDigest).toBe(true);
+    });
+
+    it('is idempotent within the same day (second run creates 0)', async () => {
+      const again = await request(http).post('/api/v1/reminders/run').set('Authorization', `Bearer ${managerToken}`);
+      expect(again.status).toBe(200);
+      expect(again.body.created).toBe(0);
+    });
+
+    it('receptionist cannot trigger the sweep (403)', async () => {
+      const res = await request(http).post('/api/v1/reminders/run').set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(403);
+    });
+  });
 });

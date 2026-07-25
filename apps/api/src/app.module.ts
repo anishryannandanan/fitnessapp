@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { validateEnv } from './config/env';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -15,6 +16,7 @@ import { DietModule } from './modules/diet/diet.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -23,6 +25,7 @@ import { HealthController } from './health.controller';
       isGlobal: true,
       validate: validateEnv,
     }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     AuthModule,
     BranchesModule,
@@ -37,6 +40,7 @@ import { HealthController } from './health.controller';
     ExpensesModule,
     PayrollModule,
     NotificationsModule,
+    RemindersModule,
   ],
   controllers: [HealthController],
 })
