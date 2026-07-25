@@ -1,0 +1,15 @@
+node_modules
+dist
+dist-ssr
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+dev-dist
+
+
+# TS composite build artifacts
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
