@@ -549,4 +549,58 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Reports & exports -------------------------
+
+  describe('reports', () => {
+    let ownerToken: string;
+    let managerToken: string;
+    let recToken: string;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('profit report returns metric rows', async () => {
+      const res = await request(http).get('/api/v1/reports/profit').set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.columns).toEqual(['Metric', 'Amount (₹)']);
+      expect(res.body.rows.length).toBe(3);
+    });
+
+    it('branch-comparison is owner-only', async () => {
+      const ok = await request(http).get('/api/v1/reports/branch-comparison').set('Authorization', `Bearer ${ownerToken}`);
+      expect(ok.status).toBe(200);
+      expect(ok.body.rows.length).toBeGreaterThanOrEqual(4);
+      const bad = await request(http).get('/api/v1/reports/branch-comparison').set('Authorization', `Bearer ${managerToken}`);
+      expect(bad.status).toBe(400);
+    });
+
+    it('reports are forbidden for a receptionist (403)', async () => {
+      const res = await request(http).get('/api/v1/reports/revenue').set('Authorization', `Bearer ${recToken}`);
+      expect(res.status).toBe(403);
+    });
+
+    it('CSV export sets text/csv and a filename', async () => {
+      const res = await request(http)
+        .get('/api/v1/reports/payments/export?format=csv')
+        .set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('text/csv');
+      expect(res.headers['content-disposition']).toContain('attachment');
+      expect(res.text.split('\n')[0]).toContain('Amount');
+    });
+
+    it('XLSX export returns a spreadsheet attachment', async () => {
+      const res = await request(http)
+        .get('/api/v1/reports/revenue/export?format=xlsx')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .buffer(true);
+      expect(res.status).toBe(200);
+      expect(res.headers['content-type']).toContain('spreadsheetml');
+      expect(res.headers['content-disposition']).toContain('.xlsx');
+    });
+  });
 });
