@@ -756,4 +756,68 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Progress tracking -------------------------
+
+  describe('progress tracking', () => {
+    let memberToken: string;
+    let managerToken: string;
+    let recToken: string;
+    let memberId: string;
+
+    beforeAll(async () => {
+      memberToken = (await login('fathima@example.com', 'Staff@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      const members = await request(http).get('/api/v1/members?q=KCH-0001').set('Authorization', `Bearer ${managerToken}`);
+      memberId = members.body[0].id;
+    });
+
+    it('member records their own measurement via /me', async () => {
+      const res = await request(http)
+        .post('/api/v1/me/measurements')
+        .set('Authorization', `Bearer ${memberToken}`)
+        .send({ weightG: 68000, bodyFatPct: 24.5, waistCm: 80 });
+      expect(res.status).toBe(201);
+      expect(res.body.weightG).toBe(68000);
+    });
+
+    it('member lists their measurements (ascending)', async () => {
+      const res = await request(http).get('/api/v1/me/measurements').set('Authorization', `Bearer ${memberToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('trainer/manager records a measurement for a member', async () => {
+      const res = await request(http)
+        .post(`/api/v1/members/${memberId}/measurements`)
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ weightG: 67500, waistCm: 79 });
+      expect(res.status).toBe(201);
+    });
+
+    it('staff can list a member\u2019s measurements', async () => {
+      const res = await request(http).get(`/api/v1/members/${memberId}/measurements`).set('Authorization', `Bearer ${managerToken}`);
+      expect(res.status).toBe(200);
+      expect(res.body.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('adds and lists a progress photo', async () => {
+      const add = await request(http)
+        .post(`/api/v1/members/${memberId}/progress-photos`)
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ photoUrl: 'https://example.com/front.jpg', pose: 'front' });
+      expect(add.status).toBe(201);
+      const list = await request(http).get(`/api/v1/members/${memberId}/progress-photos`).set('Authorization', `Bearer ${managerToken}`);
+      expect(list.body.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('receptionist cannot add a measurement (403)', async () => {
+      const res = await request(http)
+        .post(`/api/v1/members/${memberId}/measurements`)
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ weightG: 70000 });
+      expect(res.status).toBe(403);
+    });
+  });
 });

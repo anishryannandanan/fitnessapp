@@ -34,6 +34,7 @@ import { TrainerDiet } from '@/pages/trainer/TrainerDiet';
 import { MemberHome } from '@/pages/member/MemberHome';
 import { MemberWorkout } from '@/pages/member/MemberWorkout';
 import { MemberDiet } from '@/pages/member/MemberDiet';
+import { MemberProgress } from '@/pages/member/MemberProgress';
 import { MembersList } from '@/pages/shared/MembersList';
 import { ComingSoon } from '@/pages/shared/ComingSoon';
 import type { Role } from '@/lib/types';
@@ -137,7 +138,7 @@ export const router = createBrowserRouter([
       { path: 'home', element: <MemberHome /> },
       { path: 'workout', element: <MemberWorkout /> },
       { path: 'diet', element: <MemberDiet /> },
-      { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Record measurements, view charts and compare before/after photos." /> },
+      { path: 'progress', element: <MemberProgress /> },
       { path: 'chat', element: <ComingSoon title="Chat" icon={MessageSquare} description="Message your assigned trainer and request plan changes." /> },
       { path: 'membership', element: <ComingSoon title="Membership" icon={Package} description="View your package, expiry and dues, and pay online." /> },
       { path: 'profile', element: <ComingSoon title="Profile" icon={User} description="Manage your details, notification preferences and theme." /> },
