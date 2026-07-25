@@ -1,7 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import {
-  Wallet, UserCog, CreditCard, Dumbbell, Salad,
+  Wallet, UserCog, CreditCard,
   LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
 } from 'lucide-react';
 
@@ -29,7 +29,11 @@ import { ReceptionHome } from '@/pages/reception/ReceptionHome';
 import { OnboardWizard } from '@/pages/reception/OnboardWizard';
 import { CheckIn } from '@/pages/reception/CheckIn';
 import { TrainerToday } from '@/pages/trainer/TrainerToday';
+import { TrainerWorkouts } from '@/pages/trainer/TrainerWorkouts';
+import { TrainerDiet } from '@/pages/trainer/TrainerDiet';
 import { MemberHome } from '@/pages/member/MemberHome';
+import { MemberWorkout } from '@/pages/member/MemberWorkout';
+import { MemberDiet } from '@/pages/member/MemberDiet';
 import { MembersList } from '@/pages/shared/MembersList';
 import { ComingSoon } from '@/pages/shared/ComingSoon';
 import type { Role } from '@/lib/types';
@@ -118,8 +122,8 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="today" replace /> },
       { path: 'today', element: <TrainerToday /> },
       { path: 'members', element: <MembersList /> },
-      { path: 'workouts', element: <ComingSoon title="Workouts" icon={Dumbbell} description="Build workout templates and weekly plans from the exercise library, and assign them." /> },
-      { path: 'diet', element: <ComingSoon title="Diet" icon={Salad} description="Create meal plans with macros and water goals for your members." /> },
+      { path: 'workouts', element: <TrainerWorkouts /> },
+      { path: 'diet', element: <TrainerDiet /> },
       { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Track measurements and view progress charts and before/after photos." /> },
     ],
   },
@@ -131,8 +135,8 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="home" replace /> },
       { path: 'home', element: <MemberHome /> },
-      { path: 'workout', element: <ComingSoon title="Workout" icon={Dumbbell} description="Follow today's plan, log weights and reps, and save your personal records." /> },
-      { path: 'diet', element: <ComingSoon title="Diet" icon={Salad} description="Mark meals complete, upload meal photos and track your water intake." /> },
+      { path: 'workout', element: <MemberWorkout /> },
+      { path: 'diet', element: <MemberDiet /> },
       { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Record measurements, view charts and compare before/after photos." /> },
       { path: 'chat', element: <ComingSoon title="Chat" icon={MessageSquare} description="Message your assigned trainer and request plan changes." /> },
       { path: 'membership', element: <ComingSoon title="Membership" icon={Package} description="View your package, expiry and dues, and pay online." /> },
