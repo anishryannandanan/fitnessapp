@@ -7,7 +7,9 @@ import {
 
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireRole } from '@/components/RequireRole';
+import { RequireAuth } from '@/components/RequireAuth';
 import { RootRedirect } from '@/components/RootRedirect';
+import { Notifications } from '@/pages/shared/Notifications';
 import { PageLoader } from '@/components/ui/PageLoader';
 
 import { SignIn } from '@/pages/SignIn';
@@ -42,6 +44,17 @@ function roleShell(role: Role) {
 export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: '/sign-in', element: <SignIn /> },
+
+  // Shared, any authenticated role
+  {
+    path: '/notifications',
+    element: (
+      <RequireAuth>
+        <AppShell />
+      </RequireAuth>
+    ),
+    children: [{ index: true, element: <Notifications /> }],
+  },
 
   // ---- Owner ----
   {

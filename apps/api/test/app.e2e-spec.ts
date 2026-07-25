@@ -549,4 +549,70 @@ describe('FitCore API (e2e)', () => {
       expect(res.status).toBe(403);
     });
   });
+
+  // ------------------------- Notifications -------------------------
+
+  describe('notifications', () => {
+    let ownerToken: string;
+    let managerToken: string;
+    let recToken: string;
+
+    beforeAll(async () => {
+      ownerToken = (await login('owner@fitnessworld.in', 'Owner@123')).body.accessToken;
+      managerToken = (await login('manager.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+      recToken = (await login('reception.kochi@fitnessworld.in', 'Staff@123')).body.accessToken;
+    });
+
+    it('owner broadcasts an announcement to a branch', async () => {
+      const res = await request(http)
+        .post('/api/v1/announcements')
+        .set('Authorization', `Bearer ${ownerToken}`)
+        .send({ title: 'Holiday hours', body: 'We close at 8pm this week', branchId: undefined });
+      expect(res.status).toBe(201);
+      expect(res.body.sent).toBeGreaterThanOrEqual(1);
+    });
+
+    it('receptionist cannot broadcast (403)', async () => {
+      const res = await request(http)
+        .post('/api/v1/announcements')
+        .set('Authorization', `Bearer ${recToken}`)
+        .send({ title: 'nope' });
+      expect(res.status).toBe(403);
+    });
+
+    it('a recipient sees the notification and unread count', async () => {
+      const list = await request(http).get('/api/v1/notifications').set('Authorization', `Bearer ${managerToken}`);
+      expect(list.status).toBe(200);
+      expect(list.body.length).toBeGreaterThanOrEqual(1);
+
+      const count = await request(http).get('/api/v1/notifications/unread-count').set('Authorization', `Bearer ${managerToken}`);
+      expect(count.body.count).toBeGreaterThanOrEqual(1);
+    });
+
+    it('marking read decrements the unread count', async () => {
+      const before = (await request(http).get('/api/v1/notifications/unread-count').set('Authorization', `Bearer ${managerToken}`)).body.count;
+      const list = await request(http).get('/api/v1/notifications?unread=true').set('Authorization', `Bearer ${managerToken}`);
+      const id = list.body[0].id;
+      const read = await request(http).post(`/api/v1/notifications/${id}/read`).set('Authorization', `Bearer ${managerToken}`);
+      expect(read.body.updated).toBe(1);
+      const after = (await request(http).get('/api/v1/notifications/unread-count').set('Authorization', `Bearer ${managerToken}`)).body.count;
+      expect(after).toBe(before - 1);
+    });
+
+    it('a user cannot mark another user\u2019s notification (0 updated)', async () => {
+      const list = await request(http).get('/api/v1/notifications').set('Authorization', `Bearer ${managerToken}`);
+      const id = list.body[0].id;
+      const res = await request(http).post(`/api/v1/notifications/${id}/read`).set('Authorization', `Bearer ${recToken}`);
+      expect(res.body.updated).toBe(0);
+    });
+
+    it('updates a notification preference', async () => {
+      const res = await request(http)
+        .patch('/api/v1/notification-preferences')
+        .set('Authorization', `Bearer ${managerToken}`)
+        .send({ type: 'payment_due', channel: 'email', enabled: false });
+      expect(res.status).toBe(200);
+      expect(res.body.enabled).toBe(false);
+    });
+  });
 });
