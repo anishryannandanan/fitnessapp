@@ -1,15 +1,37 @@
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Dumbbell, Salad, Droplets, Flame, ChevronRight } from 'lucide-react';
+import { useAuth } from '@/stores/auth';
+import { HAS_API } from '@/lib/env';
+import { formatMoney } from '@/lib/format';
+import { fetchMyProfile } from '@/lib/meApi';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 
 export function MemberHome() {
+  const navigate = useNavigate();
+  const user = useAuth((s) => s.user);
+  const token = useAuth((s) => s.token);
   const waterMl = 1200;
   const waterGoal = 3000;
   const waterPct = Math.round((waterMl / waterGoal) * 100);
 
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile'],
+    queryFn: () => fetchMyProfile(token!),
+    enabled: HAS_API && !!token,
+  });
+
+  const activeMembership = profile?.memberships?.find((m) => m.status === 'active') ?? profile?.memberships?.[0];
+  const daysLeft = activeMembership
+    ? Math.ceil((new Date(activeMembership.endDate).getTime() - Date.now()) / 86400000)
+    : 18;
+  const dues = (profile?.invoices ?? []).reduce((s, i) => s + Math.max(0, i.total - i.amountPaid), 0);
+  const firstName = (profile?.fullName ?? user?.name ?? 'there').split(' ')[0];
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Hi, Fathima 👋" subtitle="Let's crush today's goals" />
+      <PageHeader title={`Hi, ${firstName} 👋`} subtitle="Let's crush today's goals" />
 
       <Card className="flex items-center gap-3 bg-gradient-to-br from-primary to-info text-white">
         <Flame size={28} />
@@ -19,27 +41,27 @@ export function MemberHome() {
         </div>
       </Card>
 
-      <Card className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-          <Dumbbell size={22} />
-        </div>
-        <div className="flex-1">
-          <div className="font-semibold text-text">Today's Workout</div>
-          <div className="text-xs text-muted">Upper Body · 6 exercises</div>
-        </div>
-        <button className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-fg">Start</button>
-      </Card>
+      <button onClick={() => navigate('/member/workout')} className="w-full text-left">
+        <Card className="flex items-center gap-3 transition hover:border-primary/40">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary"><Dumbbell size={22} /></div>
+          <div className="flex-1">
+            <div className="font-semibold text-text">Today's Workout</div>
+            <div className="text-xs text-muted">Tap to start logging</div>
+          </div>
+          <span className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-fg">Start</span>
+        </Card>
+      </button>
 
-      <Card className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent">
-          <Salad size={22} />
-        </div>
-        <div className="flex-1">
-          <div className="font-semibold text-text">Today's Diet</div>
-          <div className="text-xs text-muted">2 of 5 meals completed</div>
-        </div>
-        <ChevronRight size={18} className="text-muted" />
-      </Card>
+      <button onClick={() => navigate('/member/diet')} className="w-full text-left">
+        <Card className="flex items-center gap-3 transition hover:border-primary/40">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent/10 text-accent"><Salad size={22} /></div>
+          <div className="flex-1">
+            <div className="font-semibold text-text">Today's Diet</div>
+            <div className="text-xs text-muted">View your meal plan</div>
+          </div>
+          <ChevronRight size={18} className="text-muted" />
+        </Card>
+      </button>
 
       <Card>
         <div className="mb-2 flex items-center gap-2">
@@ -55,10 +77,18 @@ export function MemberHome() {
       <Card className="flex items-center justify-between">
         <div>
           <div className="text-sm text-muted">Membership</div>
-          <div className="font-semibold text-success">Active · expires in 18 days</div>
+          <div className={cnStatus(daysLeft)}>
+            {activeMembership?.package?.name ? `${activeMembership.package.name} · ` : ''}
+            {daysLeft >= 0 ? `expires in ${daysLeft} days` : 'expired'}
+          </div>
+          {dues > 0 && <div className="text-xs font-medium text-danger">Dues: {formatMoney(dues)}</div>}
         </div>
         <button className="rounded-full border border-primary px-4 py-1.5 text-sm font-semibold text-primary">Renew</button>
       </Card>
     </div>
   );
+}
+
+function cnStatus(daysLeft: number) {
+  return daysLeft >= 0 ? 'font-semibold text-success' : 'font-semibold text-danger';
 }
