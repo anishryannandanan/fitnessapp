@@ -1,50 +1,95 @@
-import { useState } from 'react';
-import { Check, Dumbbell, Minus, Plus, Trophy, Star, PartyPopper } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Check, Dumbbell, Minus, Plus, Trophy, Star, PartyPopper, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/stores/auth';
+import { HAS_API } from '@/lib/env';
+import { fetchMyWorkoutPlans, logMyWorkout, type MyWorkoutPlan } from '@/lib/meApi';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { PageLoader } from '@/components/ui/PageLoader';
 
-// Member self-service workout logging. Demo data (member users aren't linked to
-// a Member record yet); the UX mirrors the real logging flow.
 interface SetEntry { weightKg: number; reps: number; done: boolean; pr: boolean }
-interface ExerciseState { name: string; muscle: string; prevBestKg: number; sets: SetEntry[] }
+interface ExerciseState { exerciseId: string; name: string; muscle: string; prevBestKg: number; sets: SetEntry[] }
 
-const INITIAL: ExerciseState[] = [
-  { name: 'Bench Press', muscle: 'Chest', prevBestKg: 60, sets: [{ weightKg: 60, reps: 8, done: false, pr: false }, { weightKg: 62, reps: 6, done: false, pr: false }, { weightKg: 64, reps: 5, done: false, pr: false }] },
-  { name: 'Incline Dumbbell Press', muscle: 'Chest', prevBestKg: 24, sets: [{ weightKg: 24, reps: 10, done: false, pr: false }, { weightKg: 26, reps: 8, done: false, pr: false }] },
-  { name: 'Triceps Pushdown', muscle: 'Triceps', prevBestKg: 30, sets: [{ weightKg: 30, reps: 12, done: false, pr: false }, { weightKg: 32, reps: 10, done: false, pr: false }] },
+// Demo plan used when no backend is configured.
+const DEMO: ExerciseState[] = [
+  { exerciseId: 'd1', name: 'Bench Press', muscle: 'Chest', prevBestKg: 60, sets: [{ weightKg: 60, reps: 8, done: false, pr: false }, { weightKg: 62, reps: 6, done: false, pr: false }, { weightKg: 64, reps: 5, done: false, pr: false }] },
+  { exerciseId: 'd2', name: 'Incline Dumbbell Press', muscle: 'Chest', prevBestKg: 24, sets: [{ weightKg: 24, reps: 10, done: false, pr: false }, { weightKg: 26, reps: 8, done: false, pr: false }] },
 ];
 
+function planToState(plan: MyWorkoutPlan): ExerciseState[] {
+  return plan.exercises.map((pe) => {
+    const reps = parseInt(pe.reps, 10) || 10;
+    return {
+      exerciseId: pe.exerciseId,
+      name: pe.exercise?.name ?? 'Exercise',
+      muscle: pe.exercise?.muscleGroup ?? '',
+      prevBestKg: 0,
+      sets: Array.from({ length: pe.sets }, () => ({ weightKg: 20, reps, done: false, pr: false })),
+    };
+  });
+}
+
 export function MemberWorkout() {
-  const [exercises, setExercises] = useState<ExerciseState[]>(INITIAL);
+  const token = useAuth((s) => s.token);
+  const [exercises, setExercises] = useState<ExerciseState[]>(DEMO);
+  const [planId, setPlanId] = useState<string | undefined>(undefined);
+  const [planName, setPlanName] = useState('Upper Body · Push');
   const [finished, setFinished] = useState(false);
   const [rating, setRating] = useState(0);
+  const [saving, setSaving] = useState(false);
+
+  const { data: plans, isLoading } = useQuery({
+    queryKey: ['my-workout-plans'],
+    queryFn: () => fetchMyWorkoutPlans(token!),
+    enabled: HAS_API && !!token,
+  });
+
+  // Initialise from the member's assigned plan when it arrives.
+  useEffect(() => {
+    const plan = plans?.[0];
+    if (plan && plan.exercises.length) {
+      setExercises(planToState(plan));
+      setPlanId(plan.id);
+      setPlanName(plan.name);
+    }
+  }, [plans]);
 
   const update = (ei: number, si: number, patch: Partial<SetEntry>) =>
-    setExercises((prev) => prev.map((ex, i) => i !== ei ? ex : {
-      ...ex,
-      sets: ex.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)),
-    }));
+    setExercises((prev) => prev.map((ex, i) => (i !== ei ? ex : { ...ex, sets: ex.sets.map((s, j) => (j === si ? { ...s, ...patch } : s)) })));
 
-  const toggleDone = (ei: number, si: number) => {
+  const toggleDone = (ei: number, si: number) =>
     setExercises((prev) => prev.map((ex, i) => {
       if (i !== ei) return ex;
-      return {
-        ...ex,
-        sets: ex.sets.map((s, j) => {
-          if (j !== si) return s;
-          const done = !s.done;
-          const pr = done && s.weightKg > ex.prevBestKg; // PR when beating previous best
-          return { ...s, done, pr };
-        }),
-      };
+      return { ...ex, sets: ex.sets.map((s, j) => {
+        if (j !== si) return s;
+        const done = !s.done;
+        return { ...s, done, pr: done && s.weightKg > ex.prevBestKg };
+      }) };
     }));
-  };
 
   const totalSets = exercises.reduce((n, e) => n + e.sets.length, 0);
   const doneSets = exercises.reduce((n, e) => n + e.sets.filter((s) => s.done).length, 0);
   const prCount = exercises.reduce((n, e) => n + e.sets.filter((s) => s.pr).length, 0);
   const volume = exercises.reduce((v, e) => v + e.sets.filter((s) => s.done).reduce((a, s) => a + s.weightKg * s.reps, 0), 0);
+
+  const finish = async () => {
+    setSaving(true);
+    try {
+      if (HAS_API && token) {
+        const sets = exercises.flatMap((ex) =>
+          ex.sets.filter((s) => s.done).map((s, idx) => ({ exerciseId: ex.exerciseId, setIndex: idx, weightGrams: s.weightKg * 1000, reps: s.reps })),
+        );
+        if (sets.length) await logMyWorkout(token, { planId, rating: rating || undefined, sets });
+      }
+    } finally {
+      setSaving(false);
+      setFinished(true);
+    }
+  };
+
+  if (HAS_API && isLoading) return <PageLoader />;
 
   if (finished) {
     return (
@@ -58,14 +103,7 @@ export function MemberWorkout() {
             <div><div className="text-2xl font-bold text-text tabular">{volume.toLocaleString()}</div><div className="text-xs text-muted">kg volume</div></div>
             <div><div className="text-2xl font-bold text-accent tabular">{prCount}</div><div className="text-xs text-muted">PRs</div></div>
           </div>
-          <div className="mt-2 flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button key={n} onClick={() => setRating(n)}>
-                <Star size={26} className={cn(n <= rating ? 'fill-accent text-accent' : 'text-muted')} />
-              </button>
-            ))}
-          </div>
-          <button onClick={() => { setExercises(INITIAL); setFinished(false); setRating(0); }}
+          <button onClick={() => { setFinished(false); setRating(0); setExercises((p) => p.map((e) => ({ ...e, sets: e.sets.map((s) => ({ ...s, done: false, pr: false })) }))); }}
             className="mt-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-fg">Done</button>
         </Card>
       </div>
@@ -74,7 +112,7 @@ export function MemberWorkout() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Today's Workout" subtitle="Upper Body · Push" />
+      <PageHeader title="Today's Workout" subtitle={planName} />
 
       <Card className="flex items-center gap-3">
         <div className="flex-1">
@@ -89,12 +127,12 @@ export function MemberWorkout() {
       </Card>
 
       {exercises.map((ex, ei) => (
-        <Card key={ex.name} className="space-y-2">
+        <Card key={`${ex.exerciseId}-${ei}`} className="space-y-2">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary"><Dumbbell size={18} /></div>
             <div>
               <div className="font-semibold text-text">{ex.name}</div>
-              <div className="text-xs text-muted">{ex.muscle} · best {ex.prevBestKg}kg</div>
+              <div className="text-xs capitalize text-muted">{ex.muscle}{ex.prevBestKg > 0 ? ` · best ${ex.prevBestKg}kg` : ''}</div>
             </div>
           </div>
           <div className="space-y-1.5">
@@ -114,9 +152,17 @@ export function MemberWorkout() {
         </Card>
       ))}
 
-      <button onClick={() => setFinished(true)} disabled={doneSets === 0}
-        className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-fg disabled:opacity-50">
-        Finish workout
+      <div className="flex items-center justify-center gap-1">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} onClick={() => setRating(n)}>
+            <Star size={22} className={cn(n <= rating ? 'fill-accent text-accent' : 'text-muted')} />
+          </button>
+        ))}
+      </div>
+
+      <button onClick={finish} disabled={doneSets === 0 || saving}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-fg disabled:opacity-50">
+        {saving && <Loader2 size={16} className="animate-spin" />} Finish workout
       </button>
     </div>
   );

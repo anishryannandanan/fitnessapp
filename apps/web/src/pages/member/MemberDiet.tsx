@@ -1,6 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Check, Droplets, Minus, Plus, Salad } from 'lucide-react';
 import { cn } from '@/lib/cn';
+import { useAuth } from '@/stores/auth';
+import { HAS_API } from '@/lib/env';
+import { fetchMyDietPlans } from '@/lib/meApi';
 import { Card } from '@/components/ui/Card';
 import { PageHeader } from '@/components/ui/PageHeader';
 
@@ -13,13 +17,35 @@ const INITIAL: Meal[] = [
   { title: 'Paneer / Fish + Veggies', type: 'Dinner', kcal: 540, protein: 42, done: false },
 ];
 
-const GOAL_KCAL = 1840;
 const WATER_GOAL = 3000; // ml
 const GLASS = 250;
 
 export function MemberDiet() {
+  const token = useAuth((s) => s.token);
   const [meals, setMeals] = useState<Meal[]>(INITIAL);
   const [waterMl, setWaterMl] = useState(1250);
+
+  // Load the member's assigned diet plan when connected to the API.
+  const { data: plans } = useQuery({
+    queryKey: ['my-diet-plans'],
+    queryFn: () => fetchMyDietPlans(token!),
+    enabled: HAS_API && !!token,
+  });
+
+  useEffect(() => {
+    const plan = plans?.[0];
+    if (plan && plan.meals.length) {
+      setMeals(plan.meals.map((m) => ({
+        title: m.title,
+        type: m.mealType,
+        kcal: m.calories ?? 0,
+        protein: m.proteinG ?? 0,
+        done: false,
+      })));
+    }
+  }, [plans]);
+
+  const GOAL_KCAL = plans?.[0]?.dailyCalories ?? 1840;
 
   const toggle = (i: number) => setMeals((prev) => prev.map((m, j) => (j === i ? { ...m, done: !m.done } : m)));
 
