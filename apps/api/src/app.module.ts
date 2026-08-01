@@ -21,6 +21,11 @@ import { RemindersModule } from './modules/reminders/reminders.module';
 import { MeModule } from './modules/me/me.module';
 import { ProgressModule } from './modules/progress/progress.module';
 import { StaffModule } from './modules/staff/staff.module';
+import { PaymentGatewayModule } from './modules/payment-gateway/payment-gateway.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { GroupClassesModule } from './modules/group-classes/group-classes.module';
+import { NotificationDeliveryModule } from './modules/notification-delivery/notification-delivery.module';
+import { PdfModule } from './modules/pdf/pdf.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -49,6 +54,11 @@ import { HealthController } from './health.controller';
     ProgressModule,
     MeModule,
     StaffModule,
+    PaymentGatewayModule,
+    SchedulingModule,
+    GroupClassesModule,
+    NotificationDeliveryModule,
+    PdfModule,
   ],
   controllers: [HealthController],
 })

@@ -35,6 +35,11 @@ export interface MyMeasurement {
   weightG: number | null;
   bodyFatPct: number | null;
   waistCm: number | null;
+  musclePct?: number | null;
+  chestCm?: number | null;
+  armsCm?: number | null;
+  hipsCm?: number | null;
+  thighsCm?: number | null;
 }
 
 export const fetchMyProfile = (token: string) => apiFetch<MyProfile>('/api/v1/me/profile', token);
