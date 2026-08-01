@@ -14,6 +14,7 @@ import { MemberProfile } from '@/pages/shared/MemberProfile';
 import { PageLoader } from '@/components/ui/PageLoader';
 
 import { SignIn } from '@/pages/SignIn';
+import { Features } from '@/pages/Features';
 import { Branches } from '@/pages/owner/Branches';
 import { Reports } from '@/pages/owner/Reports';
 
@@ -51,6 +52,7 @@ function roleShell(role: Role) {
 export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: '/sign-in', element: <SignIn /> },
+  { path: '/features', element: <Features /> },
 
   // Shared, any authenticated role
   {
