@@ -28,6 +28,26 @@ export async function deleteBranch(id: string): Promise<Branch> {
   return { ...branch };
 }
 
+export type CreateBranchInput = { name: string; code: string; address?: string; phone?: string; email?: string };
+
+export async function createBranch(data: CreateBranchInput): Promise<Branch> {
+  await delay(300);
+  const newBranch: Branch = {
+    id: `b-${Date.now()}`,
+    name: data.name,
+    code: data.code,
+    address: data.address,
+    phone: data.phone,
+    email: data.email,
+    members: 0,
+    monthlyRevenue: 0,
+    monthlyExpense: 0,
+    isActive: true,
+  };
+  BRANCHES.push(newBranch);
+  return newBranch;
+}
+
 export async function getMembers(branchId?: string | null): Promise<Member[]> {
   await delay(200);
   if (!branchId) return MEMBERS;

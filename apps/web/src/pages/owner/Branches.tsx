@@ -1,25 +1,36 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Pencil, Trash2 } from 'lucide-react';
-import { getBranches, updateBranch, deleteBranch } from '@/lib/api';
+import { Building2, Pencil, Trash2, Plus } from 'lucide-react';
+import { getBranches, updateBranch, deleteBranch, createBranch } from '@/lib/api';
 import type { UpdateBranchInput } from '@/lib/api';
 import type { Branch } from '@/lib/types';
 import { formatMoney } from '@/lib/format';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { EditBranchModal } from '@/components/EditBranchModal';
+import { AddBranchModal } from '@/components/AddBranchModal';
+import type { CreateBranchInput } from '@/components/AddBranchModal';
 
 export function Branches() {
   const queryClient = useQueryClient();
   const { data: branches = [], isLoading } = useQuery({ queryKey: ['branches'], queryFn: getBranches });
 
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateBranchInput }) => updateBranch(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       setEditingBranch(null);
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data: CreateBranchInput) => createBranch(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      setShowAddModal(false);
     },
   });
 
@@ -34,6 +45,10 @@ export function Branches() {
     await updateMutation.mutateAsync({ id, data });
   };
 
+  const handleCreate = async (data: CreateBranchInput) => {
+    await createMutation.mutateAsync(data);
+  };
+
   const handleDeactivate = (branch: Branch) => {
     if (window.confirm(`Are you sure you want to deactivate "${branch.name}"? This branch will be hidden from operations.`)) {
       deactivateMutation.mutate(branch.id);
@@ -42,7 +57,19 @@ export function Branches() {
 
   return (
     <div className="space-y-4">
-      <PageHeader title="Branches" subtitle="Fitness World" />
+      <PageHeader
+        title="Branches"
+        subtitle="Fitness World"
+        action={
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-fg transition hover:opacity-90"
+          >
+            <Plus size={16} />
+            Add Branch
+          </button>
+        }
+      />
       {isLoading && <Card>Loading...</Card>}
       <div className="space-y-3">
         {branches.map((b) => {
@@ -93,6 +120,15 @@ export function Branches() {
           onSave={handleSave}
           onClose={() => setEditingBranch(null)}
           saving={updateMutation.isPending}
+        />
+      )}
+
+      {/* Add Branch Modal */}
+      {showAddModal && (
+        <AddBranchModal
+          onSave={handleCreate}
+          onClose={() => setShowAddModal(false)}
+          saving={createMutation.isPending}
         />
       )}
     </div>
