@@ -17,6 +17,7 @@ import { SignIn } from '@/pages/SignIn';
 import { Features } from '@/pages/Features';
 import { Branches } from '@/pages/owner/Branches';
 import { Reports } from '@/pages/owner/Reports';
+import { StaffManagement } from '@/pages/owner/StaffManagement';
 
 // Lazy-load the chart-heavy dashboard so the recharts bundle only downloads
 // when an Owner actually opens it (not for other roles or the initial load).
@@ -84,7 +85,7 @@ export const router = createBrowserRouter([
       { path: 'branches', element: <Branches /> },
       { path: 'reports', element: <Reports /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Consolidated revenue, expenses, payroll and outstanding dues across all branches." /> },
-      { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage trainers, managers, receptionists and other staff across branches." /> },
+      { path: 'staff', element: <StaffManagement /> },
     ],
   },
 

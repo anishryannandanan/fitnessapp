@@ -44,7 +44,7 @@ async function main() {
   // 3) Owner (no branch assignment => all branches)
   await prisma.user.upsert({
     where: { email: OWNER_EMAIL },
-    update: {},
+    update: { passwordHash: ownerHash, isActive: true },
     create: {
       businessId: business.id,
       role: UserRole.owner,
@@ -71,7 +71,7 @@ async function main() {
   for (const s of staff) {
     const user = await prisma.user.upsert({
       where: { email: s.email },
-      update: {},
+      update: { passwordHash: staffHash, isActive: true },
       create: {
         businessId: business.id,
         role: s.role,
@@ -100,7 +100,7 @@ async function main() {
   // 5) A demo member (member role, home branch = Kochi via userBranch)
   const member = await prisma.user.upsert({
     where: { email: 'fathima@example.com' },
-    update: {},
+    update: { passwordHash: staffHash, isActive: true },
     create: {
       businessId: business.id,
       role: UserRole.member,

@@ -103,6 +103,9 @@ export function SignIn() {
           <p className="mt-4 text-center text-xs text-muted">
             Seeded demo: <span className="font-medium text-text">owner@fitnessworld.in</span> / Owner@123
           </p>
+          <p className="mt-1 text-center text-xs text-muted">
+            Manager: <span className="font-medium text-text">manager.kochi@fitnessworld.in</span> / Staff@123
+          </p>
         </form>
       ) : (
         // ---- Demo mode (no backend) ----
