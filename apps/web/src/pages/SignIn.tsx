@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Dumbbell, Loader2 } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { DEMO_USERS } from '@/lib/mockData';
@@ -137,6 +137,13 @@ export function SignIn() {
           ? 'Authenticated against the FitCore API. Branch access is scoped to your role.'
           : 'Standalone demo with mock data. Set VITE_API_URL to enable real authentication.'}
       </p>
+
+      <Link
+        to="/features"
+        className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary transition hover:opacity-80"
+      >
+        Explore Platform Features &rarr;
+      </Link>
     </div>
   );
 }
