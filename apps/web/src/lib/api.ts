@@ -10,6 +10,24 @@ export async function getBranches(): Promise<Branch[]> {
   return BRANCHES;
 }
 
+export type UpdateBranchInput = Partial<Pick<Branch, 'name' | 'address' | 'phone' | 'email' | 'timezone' | 'isActive'>>;
+
+export async function updateBranch(id: string, data: UpdateBranchInput): Promise<Branch> {
+  await delay(300);
+  const branch = BRANCHES.find((b) => b.id === id);
+  if (!branch) throw new Error('Branch not found');
+  Object.assign(branch, data);
+  return { ...branch };
+}
+
+export async function deleteBranch(id: string): Promise<Branch> {
+  await delay(300);
+  const branch = BRANCHES.find((b) => b.id === id);
+  if (!branch) throw new Error('Branch not found');
+  branch.isActive = false;
+  return { ...branch };
+}
+
 export async function getMembers(branchId?: string | null): Promise<Member[]> {
   await delay(200);
   if (!branchId) return MEMBERS;

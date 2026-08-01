@@ -7,6 +7,7 @@ const createPrismaMock = () => ({
     findMany: jest.fn().mockResolvedValue([]),
     findFirst: jest.fn(),
     create: jest.fn(),
+    update: jest.fn(),
   },
 });
 
@@ -70,6 +71,72 @@ describe('BranchesService', () => {
       const data = prisma.branch.create.mock.calls[0][0].data;
       expect(data.code).toBe('ALV');
       expect(data.businessId).toBe('biz-1');
+    });
+  });
+
+  describe('update', () => {
+    it('owner: can update any branch', async () => {
+      prisma.branch.findFirst.mockResolvedValue({ id: 'b-any', name: 'Any' });
+      prisma.branch.update.mockResolvedValue({ id: 'b-any', name: 'Updated' });
+      const res = await service.update(owner, 'b-any', { name: 'Updated' });
+      expect(prisma.branch.update).toHaveBeenCalledWith({
+        where: { id: 'b-any' },
+        data: { name: 'Updated' },
+      });
+      expect(res.name).toBe('Updated');
+    });
+
+    it('manager: can update their assigned branch', async () => {
+      prisma.branch.findFirst.mockResolvedValue({ id: 'b-kochi', name: 'Kochi' });
+      prisma.branch.update.mockResolvedValue({ id: 'b-kochi', phone: '+91999' });
+      await service.update(manager, 'b-kochi', { phone: '+91999' });
+      expect(prisma.branch.update).toHaveBeenCalledWith({
+        where: { id: 'b-kochi' },
+        data: { phone: '+91999' },
+      });
+    });
+
+    it('manager: 403 when updating a branch outside their scope', async () => {
+      await expect(
+        service.update(manager, 'b-other', { name: 'X' }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.branch.update).not.toHaveBeenCalled();
+    });
+
+    it('404 when branch does not exist', async () => {
+      prisma.branch.findFirst.mockResolvedValue(null);
+      await expect(
+        service.update(owner, 'b-missing', { name: 'X' }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+      expect(prisma.branch.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('deactivate', () => {
+    it('owner: soft-deletes by setting isActive to false', async () => {
+      prisma.branch.findFirst.mockResolvedValue({ id: 'b-any', isActive: true });
+      prisma.branch.update.mockResolvedValue({ id: 'b-any', isActive: false });
+      const res = await service.deactivate(owner, 'b-any');
+      expect(prisma.branch.update).toHaveBeenCalledWith({
+        where: { id: 'b-any' },
+        data: { isActive: false },
+      });
+      expect(res.isActive).toBe(false);
+    });
+
+    it('manager: 403 when trying to deactivate', async () => {
+      await expect(service.deactivate(manager, 'b-kochi')).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
+      expect(prisma.branch.update).not.toHaveBeenCalled();
+    });
+
+    it('owner: 404 when branch does not exist', async () => {
+      prisma.branch.findFirst.mockResolvedValue(null);
+      await expect(service.deactivate(owner, 'b-missing')).rejects.toBeInstanceOf(
+        NotFoundException,
+      );
+      expect(prisma.branch.update).not.toHaveBeenCalled();
     });
   });
 });
