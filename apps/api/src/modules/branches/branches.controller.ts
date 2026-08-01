@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post } from '@nestjs/common';
 import { BranchesService } from './branches.service';
 import { CreateBranchDto } from './dto/create-branch.dto';
+import { UpdateBranchDto } from './dto/update-branch.dto';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../../common/types/auth-user';
@@ -24,5 +25,17 @@ export class BranchesController {
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateBranchDto) {
     return this.branches.create(user, dto);
+  }
+
+  @Roles('owner', 'manager')
+  @Patch(':id')
+  update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: UpdateBranchDto) {
+    return this.branches.update(user, id, dto);
+  }
+
+  @Roles('owner')
+  @Delete(':id')
+  deactivate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.branches.deactivate(user, id);
   }
 }

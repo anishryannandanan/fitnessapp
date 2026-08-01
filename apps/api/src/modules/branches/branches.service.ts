@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import type { AuthUser } from '../../common/types/auth-user';
 import { CreateBranchDto } from './dto/create-branch.dto';
+import { UpdateBranchDto } from './dto/update-branch.dto';
 
 @Injectable()
 export class BranchesService {
@@ -58,6 +59,27 @@ export class BranchesService {
         phone: dto.phone,
         email: dto.email,
       },
+    });
+  }
+
+  async update(user: AuthUser, id: string, dto: UpdateBranchDto) {
+    // findOne already checks scope + existence (throws 403 or 404).
+    await this.findOne(user, id);
+    return this.prisma.branch.update({
+      where: { id },
+      data: dto,
+    });
+  }
+
+  async deactivate(user: AuthUser, id: string) {
+    // Only owner can deactivate (also enforced by @Roles at the route).
+    if (!this.isOwner(user)) {
+      throw new ForbiddenException('Only the owner can deactivate branches');
+    }
+    await this.findOne(user, id);
+    return this.prisma.branch.update({
+      where: { id },
+      data: { isActive: false },
     });
   }
 }
