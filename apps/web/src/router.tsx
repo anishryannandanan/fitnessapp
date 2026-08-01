@@ -33,10 +33,13 @@ import { CheckIn } from '@/pages/reception/CheckIn';
 import { TrainerToday } from '@/pages/trainer/TrainerToday';
 import { TrainerWorkouts } from '@/pages/trainer/TrainerWorkouts';
 import { TrainerDiet } from '@/pages/trainer/TrainerDiet';
+import { TrainerProgress } from '@/pages/trainer/TrainerProgress';
 import { MemberHome } from '@/pages/member/MemberHome';
 import { MemberWorkout } from '@/pages/member/MemberWorkout';
 import { MemberDiet } from '@/pages/member/MemberDiet';
 import { MemberProgress } from '@/pages/member/MemberProgress';
+import { MemberMembership } from '@/pages/member/MemberMembership';
+import { MemberSchedule } from '@/pages/member/MemberSchedule';
 import { MembersList } from '@/pages/shared/MembersList';
 import { ComingSoon } from '@/pages/shared/ComingSoon';
 import type { Role } from '@/lib/types';
@@ -128,7 +131,7 @@ export const router = createBrowserRouter([
       { path: 'members', element: <MembersList /> },
       { path: 'workouts', element: <TrainerWorkouts /> },
       { path: 'diet', element: <TrainerDiet /> },
-      { path: 'progress', element: <ComingSoon title="Progress" icon={LineChart} description="Track measurements and view progress charts and before/after photos." /> },
+      { path: 'progress', element: <TrainerProgress /> },
     ],
   },
 
@@ -143,9 +146,9 @@ export const router = createBrowserRouter([
       { path: 'diet', element: <MemberDiet /> },
       { path: 'progress', element: <MemberProgress /> },
       { path: 'chat', element: <ComingSoon title="Chat" icon={MessageSquare} description="Message your assigned trainer and request plan changes." /> },
-      { path: 'membership', element: <ComingSoon title="Membership" icon={Package} description="View your package, expiry and dues, and pay online." /> },
+      { path: 'membership', element: <MemberMembership /> },
       { path: 'profile', element: <ComingSoon title="Profile" icon={User} description="Manage your details, notification preferences and theme." /> },
-      { path: 'schedule', element: <ComingSoon title="PT Schedule" icon={CalendarClock} description="Upcoming personal training sessions." /> },
+      { path: 'schedule', element: <MemberSchedule /> },
     ],
   },
 

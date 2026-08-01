@@ -9,6 +9,19 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(16, 'JWT_SECRET must be at least 16 chars'),
   JWT_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+
+  // Razorpay payment gateway
+  RAZORPAY_KEY_ID: z.string().default(''),
+  RAZORPAY_KEY_SECRET: z.string().default(''),
+  RAZORPAY_WEBHOOK_SECRET: z.string().default(''),
+
+  // Notification delivery providers
+  TWILIO_ACCOUNT_SID: z.string().default(''),
+  TWILIO_AUTH_TOKEN: z.string().default(''),
+  TWILIO_PHONE_NUMBER: z.string().default(''),
+  TWILIO_WHATSAPP_NUMBER: z.string().default(''),
+  SENDGRID_API_KEY: z.string().default(''),
+  SENDGRID_FROM_EMAIL: z.string().default('noreply@fitcore.app'),
 });
 
 export type Env = z.infer<typeof envSchema>;

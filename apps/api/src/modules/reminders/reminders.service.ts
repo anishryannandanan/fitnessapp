@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { NotificationType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationDeliveryService } from '../notification-delivery/notification-delivery.service';
 import { allowedBranchIds } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
 
@@ -21,6 +22,7 @@ export class RemindersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly delivery: NotificationDeliveryService,
   ) {}
 
   /** Daily digest at 08:00 server time — front-desk actionable reminders. */
@@ -30,7 +32,13 @@ export class RemindersService {
     let created = 0;
     for (const b of branches) created += await this.processBranch(b.id, b.businessId);
     this.logger.log(`Daily reminder sweep: created ${created} notifications across ${branches.length} branches`);
-    return { created, branches: branches.length };
+
+    // Also trigger external delivery for member-facing reminders
+    const renewalResult = await this.delivery.sendRenewalReminders();
+    const paymentResult = await this.delivery.sendPaymentDueReminders();
+    this.logger.log(`External reminders sent — renewals: ${renewalResult.sent}, payments: ${paymentResult.sent}`);
+
+    return { created, branches: branches.length, externalRenewals: renewalResult, externalPayments: paymentResult };
   }
 
   /** Manual trigger (owner: all branches; manager: their branch). */

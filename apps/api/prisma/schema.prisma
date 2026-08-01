@@ -650,3 +650,149 @@ model ProgressPhoto {
 
   @@index([memberId, takenAt])
 }
+
+
+// ---- Feature: Online Payment Gateway (Razorpay) ----
+
+enum PaymentOrderStatus {
+  created
+  attempted
+  paid
+  failed
+  refunded
+}
+
+model PaymentOrder {
+  id               String             @id @default(uuid())
+  branchId         String
+  memberId         String
+  invoiceId        String
+  razorpayOrderId  String             @unique
+  razorpayPaymentId String?
+  amount           Int // minor units (paise)
+  currency         String             @default("INR") @db.Char(3)
+  status           PaymentOrderStatus @default(created)
+  receipt          String?
+  notes            Json?
+  paidAt           DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([memberId])
+  @@index([invoiceId])
+  @@index([razorpayOrderId])
+}
+
+
+// ---- Feature: Trainer Scheduling & Availability ----
+
+enum SlotStatus {
+  available
+  booked
+  cancelled
+}
+
+enum SessionStatus {
+  scheduled
+  completed
+  cancelled
+  no_show
+}
+
+model TrainerSlot {
+  id        String     @id @default(uuid())
+  branchId  String
+  trainerId String // User id (role=trainer)
+  dayOfWeek Int // 0=Sunday, 6=Saturday
+  startTime String // HH:mm format
+  endTime   String // HH:mm format
+  maxClients Int       @default(1) // 1=personal, >1=group
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  sessions PTSession[]
+
+  @@index([branchId, trainerId])
+  @@index([trainerId, dayOfWeek])
+}
+
+model PTSession {
+  id            String        @id @default(uuid())
+  branchId      String
+  trainerId     String
+  memberId      String
+  slotId        String?
+  scheduledDate DateTime
+  startTime     String // HH:mm
+  endTime       String // HH:mm
+  status        SessionStatus @default(scheduled)
+  notes         String?
+  cancelledById String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  slot TrainerSlot? @relation(fields: [slotId], references: [id])
+
+  @@index([trainerId, scheduledDate])
+  @@index([memberId, scheduledDate])
+  @@index([branchId, scheduledDate])
+}
+
+model TrainerPreference {
+  id              String   @id @default(uuid())
+  memberId        String   @unique
+  preferredTime   String?  // morning/afternoon/evening
+  preferredGender String?  // male/female/any
+  goals           String?  // weight_loss/muscle_gain/general_fitness
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([memberId])
+}
+
+
+// ---- Feature: Group Training / Floor Coach ----
+
+enum ClassStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+}
+
+model GroupClass {
+  id          String      @id @default(uuid())
+  branchId    String
+  coachId     String // trainer acting as floor coach
+  name        String
+  description String?
+  dayOfWeek   Int // 0=Sunday, 6=Saturday
+  startTime   String // HH:mm
+  endTime     String // HH:mm
+  maxCapacity Int         @default(20)
+  classType   String      @default("general") // general/yoga/cardio/hiit/strength
+  isRecurring Boolean     @default(true)
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  enrollments ClassEnrollment[]
+
+  @@index([branchId, dayOfWeek])
+  @@index([coachId])
+}
+
+model ClassEnrollment {
+  id           String      @id @default(uuid())
+  classId      String
+  memberId     String
+  enrolledAt   DateTime    @default(now())
+  isAutoAssign Boolean     @default(false) // true if auto-assigned as fallback for non-PT
+
+  groupClass GroupClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, memberId])
+  @@index([memberId])
+}
