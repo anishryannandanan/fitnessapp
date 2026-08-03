@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsOptional, IsString, Length, ValidateNested } from 'class-validator';
 import { CreateMemberDto } from './create-member.dto';
 
 // A lean onboarding payload for Slice 2: personal details + chosen package.
@@ -16,4 +16,10 @@ export class OnboardDto {
   @IsOptional()
   @IsString()
   startDate?: string;
+
+  /** Optional password to create a login account for the member. */
+  @IsOptional()
+  @IsString()
+  @Length(6, 100)
+  password?: string;
 }

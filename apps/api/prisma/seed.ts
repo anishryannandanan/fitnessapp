@@ -126,11 +126,20 @@ async function main() {
     includesTrainer?: boolean;
     branchId?: string | null;
   }> = [
+    // General (no trainer)
     { name: 'Gym Only - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 150000, branchId: null },
+    { name: 'Gym Only - Quarterly', type: PackageType.non_trainer, durationDays: 90, price: 400000, branchId: null },
+    { name: 'Gym Only - Half Yearly', type: PackageType.non_trainer, durationDays: 180, price: 750000, branchId: null },
     { name: 'Gym Only - Annual', type: PackageType.non_trainer, durationDays: 365, price: 1200000, branchId: null },
     { name: 'Cardio Only - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 120000, branchId: null },
+    { name: 'Student Plan - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 100000, branchId: null },
+    { name: 'Couple Plan - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 250000, branchId: null },
+    { name: 'Weekend Only - Monthly', type: PackageType.non_trainer, durationDays: 30, price: 80000, branchId: null },
+    // With trainer
     { name: 'Personal Training - Monthly', type: PackageType.trainer, durationDays: 30, price: 500000, ptSessions: 12, includesTrainer: true, branchId: null },
-    { name: 'Transformation - Quarterly', type: PackageType.trainer, durationDays: 90, price: 1500000, ptSessions: 36, includesTrainer: true, branchId: kochi.id },
+    { name: 'Personal Training - Quarterly', type: PackageType.trainer, durationDays: 90, price: 1350000, ptSessions: 36, includesTrainer: true, branchId: null },
+    { name: 'Transformation - 3 Month', type: PackageType.trainer, durationDays: 90, price: 1500000, ptSessions: 36, includesTrainer: true, branchId: null },
+    { name: 'VIP Personal Training - Monthly', type: PackageType.trainer, durationDays: 30, price: 800000, ptSessions: 20, includesTrainer: true, branchId: null },
   ];
 
   const packages = [];

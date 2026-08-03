@@ -4,7 +4,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { allowedBranchIds, canAccessBranch } from '../../common/scope';
 import type { AuthUser } from '../../common/types/auth-user';
@@ -142,6 +143,26 @@ export class MembersService {
     const end = new Date(start.getTime() + pkg.durationDays * 24 * 60 * 60 * 1000);
 
     return this.prisma.$transaction(async (tx) => {
+      // Create login account for the member if password provided
+      let userId: string | undefined;
+      if (dto.password && dto.personal.email) {
+        const passwordHash = await bcrypt.hash(dto.password, 10);
+        const memberUser = await tx.user.create({
+          data: {
+            businessId: user.businessId,
+            role: UserRole.member,
+            email: dto.personal.email,
+            fullName: dto.personal.fullName,
+            passwordHash,
+            avatarColor: '#EC4899',
+          },
+        });
+        await tx.userBranch.create({
+          data: { userId: memberUser.id, branchId, isPrimary: true },
+        });
+        userId = memberUser.id;
+      }
+
       const member = await tx.member.create({
         data: {
           businessId: user.businessId,
@@ -154,6 +175,7 @@ export class MembersService {
           dob: dto.personal.dob ? new Date(dto.personal.dob) : undefined,
           address: dto.personal.address,
           createdById: user.sub,
+          userId: userId ?? undefined,
         },
       });
 

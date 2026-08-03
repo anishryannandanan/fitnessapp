@@ -104,6 +104,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <ManagerDashboard /> },
       { path: 'members', element: <MembersList /> },
+      { path: 'members/new', element: <OnboardWizard /> },
       { path: 'staff', element: <BranchStaff /> },
       { path: 'trainers', element: <TrainerAllocation /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Branch revenue, expenses and profit." /> },
