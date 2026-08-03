@@ -27,6 +27,7 @@ const OwnerDashboard = lazy(() =>
 
 const lazyEl = (el: React.ReactNode) => <Suspense fallback={<PageLoader />}>{el}</Suspense>;
 import { ManagerDashboard } from '@/pages/branch/ManagerDashboard';
+import { BranchStaff } from '@/pages/branch/BranchStaff';
 import { ReceptionHome } from '@/pages/reception/ReceptionHome';
 import { OnboardWizard } from '@/pages/reception/OnboardWizard';
 import { CheckIn } from '@/pages/reception/CheckIn';
@@ -100,7 +101,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="dashboard" replace /> },
       { path: 'dashboard', element: <ManagerDashboard /> },
       { path: 'members', element: <MembersList /> },
-      { path: 'staff', element: <ComingSoon title="Staff" icon={UserCog} description="Manage staff for your branch." /> },
+      { path: 'staff', element: <BranchStaff /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Branch revenue, expenses and profit." /> },
       { path: 'reports', element: <Reports /> },
     ],
