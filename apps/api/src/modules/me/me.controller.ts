@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Param, Post, Res } from '@nestjs/common';
-import { Response } from 'express';
+import { FastifyReply } from 'fastify';
 import { MeService } from './me.service';
 import { LogMyWorkoutDto } from './dto/log-my-workout.dto';
 import { CreateMeasurementDto } from '../progress/dto/create-measurement.dto';
@@ -58,14 +58,13 @@ export class MeController {
   }
 
   @Get('diet-plans/:planId/pdf')
-  async dietPlanPdf(@CurrentUser() user: AuthUser, @Param('planId') planId: string, @Res() res: Response) {
+  async dietPlanPdf(@CurrentUser() user: AuthUser, @Param('planId') planId: string, @Res() reply: FastifyReply) {
     const data = await this.me.dietPlanPdfData(user, planId);
     const buffer = await this.pdf.generateDietPlanPdf(data);
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="diet-plan-${planId}.pdf"`,
-      'Content-Length': buffer.length,
-    });
-    res.end(buffer);
+    reply
+      .header('Content-Type', 'application/pdf')
+      .header('Content-Disposition', `attachment; filename="diet-plan-${planId}.pdf"`)
+      .header('Content-Length', buffer.length)
+      .send(buffer);
   }
 }

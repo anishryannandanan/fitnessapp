@@ -72,8 +72,8 @@ export function TrainerAllocation() {
     staff.find((s) => s.id === trainerId)?.fullName ?? 'Unknown Trainer';
 
   const getMemberName = (memberId: string) => {
-    const m = members.find((m: any) => m.id === memberId);
-    return m?.fullName ?? 'Unknown Member';
+    const m = members.find((mem: any) => mem.id === memberId);
+    return m?.fullName || m?.name || 'Unknown Member';
   };
 
   return (
@@ -169,7 +169,7 @@ export function TrainerAllocation() {
                   <option value="">Select a member...</option>
                   {members.map((m: any) => (
                     <option key={m.id} value={m.id}>
-                      {m.fullName} ({m.memberCode})
+                      {m.fullName || m.name} ({m.memberCode || m.code})
                     </option>
                   ))}
                 </select>

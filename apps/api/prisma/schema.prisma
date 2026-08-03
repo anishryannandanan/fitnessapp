@@ -813,7 +813,7 @@ model TrainerAssignment {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  @@unique([memberId, isActive]) // only one active assignment per member
+  @@index([memberId, isActive])
   @@index([trainerId, isActive])
   @@index([branchId])
 }
