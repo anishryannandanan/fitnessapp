@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Download, IndianRupee, Package } from 'lucide-react';
+import { CreditCard, Download, Package } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { HAS_API, API_URL } from '@/lib/env';
 import { apiFetch } from '@/lib/authApi';

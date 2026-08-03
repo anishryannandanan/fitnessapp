@@ -26,6 +26,7 @@ import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { GroupClassesModule } from './modules/group-classes/group-classes.module';
 import { NotificationDeliveryModule } from './modules/notification-delivery/notification-delivery.module';
 import { PdfModule } from './modules/pdf/pdf.module';
+import { TrainerAssignmentsModule } from './modules/trainer-assignments/trainer-assignments.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -59,6 +60,7 @@ import { HealthController } from './health.controller';
     GroupClassesModule,
     NotificationDeliveryModule,
     PdfModule,
+    TrainerAssignmentsModule,
   ],
   controllers: [HealthController],
 })

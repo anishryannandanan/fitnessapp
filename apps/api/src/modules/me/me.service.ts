@@ -65,6 +65,45 @@ export class MeService {
     });
   }
 
+  async dietPlanPdfData(user: AuthUser, planId: string) {
+    const member = await this.resolveMember(user);
+    const plan = await this.prisma.dietPlan.findFirst({
+      where: { id: planId, memberId: member.id },
+      include: { meals: { orderBy: { orderIndex: 'asc' } } },
+    });
+    if (!plan) throw new NotFoundException('Diet plan not found');
+
+    const creator = await this.prisma.user.findUnique({
+      where: { id: plan.createdById },
+      select: { fullName: true },
+    });
+
+    const memberRecord = await this.prisma.member.findUnique({
+      where: { id: member.id },
+      select: { fullName: true },
+    });
+
+    return {
+      memberName: memberRecord?.fullName ?? 'Member',
+      planName: plan.name,
+      trainerName: creator?.fullName ?? 'Staff',
+      dailyCalories: plan.dailyCalories ?? undefined,
+      proteinG: plan.proteinG ?? undefined,
+      carbsG: plan.carbsG ?? undefined,
+      fatG: plan.fatG ?? undefined,
+      waterGoalMl: plan.waterGoalMl ?? undefined,
+      meals: plan.meals.map((m) => ({
+        mealType: m.mealType,
+        title: m.title,
+        calories: m.calories ?? undefined,
+        proteinG: m.proteinG ?? undefined,
+        carbsG: m.carbsG ?? undefined,
+        fatG: m.fatG ?? undefined,
+      })),
+      createdAt: plan.createdAt.toLocaleDateString('en-IN'),
+    };
+  }
+
   async workoutHistory(user: AuthUser) {
     const member = await this.resolveMember(user);
     return this.prisma.workoutLog.findMany({

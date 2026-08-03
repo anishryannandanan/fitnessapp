@@ -796,3 +796,24 @@ model ClassEnrollment {
   @@unique([classId, memberId])
   @@index([memberId])
 }
+
+
+// ---- Feature: Trainer Assignment (1:1 personal trainer ↔ member) ----
+
+model TrainerAssignment {
+  id           String    @id @default(uuid())
+  branchId     String
+  trainerId    String // User id (role=trainer)
+  memberId     String
+  assignedAt   DateTime  @default(now())
+  unassignedAt DateTime?
+  isActive     Boolean   @default(true)
+  assignedById String // who made the assignment (owner/manager)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([memberId, isActive])
+  @@index([trainerId, isActive])
+  @@index([branchId])
+}

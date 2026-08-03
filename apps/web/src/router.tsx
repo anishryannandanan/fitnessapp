@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import {
-  Wallet, UserCog, CreditCard,
-  LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
+  Wallet,
+  CreditCard,
+  ClipboardList, MessageSquare, User,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
@@ -18,6 +19,7 @@ import { Features } from '@/pages/Features';
 import { Branches } from '@/pages/owner/Branches';
 import { Reports } from '@/pages/owner/Reports';
 import { StaffManagement } from '@/pages/owner/StaffManagement';
+import { TrainerAllocation } from '@/pages/owner/TrainerAllocation';
 
 // Lazy-load the chart-heavy dashboard so the recharts bundle only downloads
 // when an Owner actually opens it (not for other roles or the initial load).
@@ -90,6 +92,7 @@ export const router = createBrowserRouter([
       { path: 'reports', element: <Reports /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Consolidated revenue, expenses, payroll and outstanding dues across all branches." /> },
       { path: 'staff', element: <StaffManagement /> },
+      { path: 'trainers', element: <TrainerAllocation /> },
     ],
   },
 
@@ -102,6 +105,7 @@ export const router = createBrowserRouter([
       { path: 'dashboard', element: <ManagerDashboard /> },
       { path: 'members', element: <MembersList /> },
       { path: 'staff', element: <BranchStaff /> },
+      { path: 'trainers', element: <TrainerAllocation /> },
       { path: 'finance', element: <ComingSoon title="Finance" icon={Wallet} description="Branch revenue, expenses and profit." /> },
       { path: 'reports', element: <Reports /> },
     ],
