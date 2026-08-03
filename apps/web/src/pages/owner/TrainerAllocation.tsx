@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UserPlus, UserMinus, Search, Users } from 'lucide-react';
+import { UserPlus, UserMinus, Users } from 'lucide-react';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Card } from '@/components/ui/Card';
 import { getTrainerAssignments, assignTrainer, unassignTrainer } from '@/lib/trainerAssignmentApi';
@@ -72,8 +72,8 @@ export function TrainerAllocation() {
     staff.find((s) => s.id === trainerId)?.fullName ?? 'Unknown Trainer';
 
   const getMemberName = (memberId: string) => {
-    const m = members.find((mem: any) => mem.id === memberId);
-    return m?.fullName || m?.name || 'Unknown Member';
+    const m = members.find((mem) => mem.id === memberId);
+    return m?.name || 'Unknown Member';
   };
 
   return (
@@ -167,9 +167,9 @@ export function TrainerAllocation() {
                   className="w-full rounded-xl border bg-surface-2 px-3 py-2.5 text-sm text-text outline-none focus:ring-2 focus:ring-primary/40"
                 >
                   <option value="">Select a member...</option>
-                  {members.map((m: any) => (
+                  {members.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.fullName || m.name} ({m.memberCode || m.code})
+                      {m.name} ({m.code})
                     </option>
                   ))}
                 </select>

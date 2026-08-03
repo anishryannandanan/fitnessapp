@@ -1,8 +1,9 @@
 import { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import {
-  Wallet, UserCog, CreditCard,
-  LineChart, ClipboardList, CalendarClock, MessageSquare, Package, User,
+  Wallet,
+  CreditCard,
+  ClipboardList, MessageSquare, User,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/layout/AppShell';
