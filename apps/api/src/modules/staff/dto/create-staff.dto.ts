@@ -3,7 +3,6 @@ import {
   IsEnum,
   IsOptional,
   IsString,
-  IsUUID,
   Length,
   MinLength,
 } from 'class-validator';
@@ -28,7 +27,7 @@ export class CreateStaffDto {
   @IsEnum(StaffTypeEnum)
   staffType!: StaffTypeEnum;
 
-  @IsUUID()
+  @IsString()
   branchId!: string;
 
   @IsOptional()
