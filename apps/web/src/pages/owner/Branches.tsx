@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Building2, Pencil, Trash2, Plus, X } from 'lucide-react';
+import { Building2, Pencil, Trash2, Plus } from 'lucide-react';
 import { getBranches, updateBranch, deleteBranch, hardDeleteBranch, createBranch } from '@/lib/api';
 import type { UpdateBranchInput } from '@/lib/api';
 import type { Branch } from '@/lib/types';
@@ -115,23 +115,13 @@ export function Branches() {
                 >
                   <Pencil size={16} />
                 </button>
-                {b.isActive ? (
-                  <button
-                    onClick={() => handleDeactivate(b)}
-                    className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger"
-                    title="Deactivate branch"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleHardDelete(b)}
-                    className="rounded-lg p-2 text-danger transition hover:bg-danger/10"
-                    title="Permanently delete branch"
-                  >
-                    <X size={16} />
-                  </button>
-                )}
+                <button
+                  onClick={() => handleHardDelete(b)}
+                  className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger"
+                  title="Delete branch permanently"
+                >
+                  <Trash2 size={16} />
+                </button>
               </div>
             </Card>
           );
