@@ -28,6 +28,26 @@ export async function deleteBranch(id: string): Promise<Branch> {
   return { ...branch };
 }
 
+export async function hardDeleteBranch(id: string): Promise<void> {
+  const { API_URL, HAS_API } = await import('./env');
+  const { useAuth } = await import('@/stores/auth');
+  if (!HAS_API) {
+    await delay(300);
+    const idx = BRANCHES.findIndex((b) => b.id === id);
+    if (idx >= 0) BRANCHES.splice(idx, 1);
+    return;
+  }
+  const token = useAuth.getState().token ?? '';
+  const res = await fetch(`${API_URL}/api/v1/branches/${id}/permanent`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body?.message || 'Failed to delete branch');
+  }
+}
+
 export type CreateBranchInput = { name: string; code: string; address?: string; phone?: string; email?: string };
 
 export async function createBranch(data: CreateBranchInput): Promise<Branch> {
