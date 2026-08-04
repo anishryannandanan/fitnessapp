@@ -39,6 +39,7 @@ export function OnboardWizard() {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [packageId, setPackageId] = useState<string | null>(null);
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [submitting, setSubmitting] = useState(false);
@@ -69,6 +70,7 @@ export function OnboardWizard() {
         const res = await onboardMember(token, {
           personal: { fullName: fullName.trim(), phone: phone.trim(), email: email.trim() || undefined },
           packageId: packageId!,
+          password: password.trim() || undefined,
         });
         setResult(res);
       } else {
@@ -195,6 +197,7 @@ export function OnboardWizard() {
           <Field label="Full name" value={fullName} onChange={setFullName} placeholder="e.g. Fathima S" />
           <Field label="Mobile" value={phone} onChange={setPhone} placeholder="+91…" />
           <Field label="Email (optional)" value={email} onChange={setEmail} placeholder="name@example.com" />
+          <Field label="Password (optional, for member login)" value={password} onChange={setPassword} placeholder="Min 6 characters" />
         </Card>
       )}
 

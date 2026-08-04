@@ -37,7 +37,7 @@ export interface OnboardResult {
 
 export function onboardMember(
   token: string,
-  payload: { personal: OnboardPersonal; packageId: string },
+  payload: { personal: OnboardPersonal; packageId: string; password?: string },
 ): Promise<OnboardResult> {
   return apiFetch<OnboardResult>('/api/v1/members/onboard', token, {
     method: 'POST',

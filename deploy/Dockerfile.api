@@ -15,4 +15,4 @@ RUN npx nest build
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node prisma/seed.ts 2>/dev/null || true; node dist/main.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && npx ts-node prisma/seed.ts 2>/dev/null || true && npx ts-node prisma/seed-demo-data.ts 2>/dev/null || true; node dist/main.js"]

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Building2, Pencil, Trash2, Plus } from 'lucide-react';
-import { getBranches, updateBranch, deleteBranch, createBranch } from '@/lib/api';
+import { getBranches, updateBranch, deleteBranch, hardDeleteBranch, createBranch } from '@/lib/api';
 import type { UpdateBranchInput } from '@/lib/api';
 import type { Branch } from '@/lib/types';
 import { formatMoney } from '@/lib/format';
@@ -41,6 +41,16 @@ export function Branches() {
     },
   });
 
+  const hardDeleteMutation = useMutation({
+    mutationFn: (id: string) => hardDeleteBranch(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+    },
+    onError: (err: Error) => {
+      alert(err.message);
+    },
+  });
+
   const handleSave = async (id: string, data: UpdateBranchInput) => {
     await updateMutation.mutateAsync({ id, data });
   };
@@ -52,6 +62,12 @@ export function Branches() {
   const handleDeactivate = (branch: Branch) => {
     if (window.confirm(`Are you sure you want to deactivate "${branch.name}"? This branch will be hidden from operations.`)) {
       deactivateMutation.mutate(branch.id);
+    }
+  };
+
+  const handleHardDelete = (branch: Branch) => {
+    if (window.confirm(`⚠️ PERMANENTLY DELETE "${branch.name}"?\n\nThis will remove the branch and all its data forever. This cannot be undone!\n\nNote: Branches with members cannot be deleted.`)) {
+      hardDeleteMutation.mutate(branch.id);
     }
   };
 
@@ -100,10 +116,9 @@ export function Branches() {
                   <Pencil size={16} />
                 </button>
                 <button
-                  onClick={() => handleDeactivate(b)}
-                  disabled={!b.isActive}
-                  className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-muted"
-                  title="Deactivate branch"
+                  onClick={() => handleHardDelete(b)}
+                  className="rounded-lg p-2 text-muted transition hover:bg-danger/10 hover:text-danger"
+                  title="Delete branch permanently"
                 >
                   <Trash2 size={16} />
                 </button>

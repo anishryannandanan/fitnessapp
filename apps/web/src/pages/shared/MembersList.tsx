@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
 import { useAuth } from '@/stores/auth';
 import { getMembers } from '@/lib/api';
 import { fetchMembers } from '@/lib/membersApi';
@@ -34,9 +34,26 @@ export function MembersList() {
     },
   });
 
+  const canAddMember = user?.role === 'owner' || user?.role === 'manager' || user?.role === 'receptionist';
+  const addMemberPath = user?.role === 'owner' ? '/reception/members/new' : user?.role === 'manager' ? '/branch/members/new' : '/reception/members/new';
+
   return (
     <div className="space-y-4">
-      <PageHeader title="Members" subtitle={HAS_API ? 'Live' : 'Demo data'} />
+      <PageHeader
+        title="Members"
+        subtitle={HAS_API ? 'Live' : 'Demo data'}
+        action={
+          canAddMember ? (
+            <button
+              onClick={() => navigate(addMemberPath)}
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-fg transition hover:opacity-90"
+            >
+              <Plus size={16} />
+              Add Member
+            </button>
+          ) : undefined
+        }
+      />
 
       <div className="flex items-center gap-2 rounded-xl border bg-surface px-3 py-2">
         <Search size={18} className="text-muted" />

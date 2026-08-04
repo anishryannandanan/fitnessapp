@@ -38,4 +38,10 @@ export class BranchesController {
   deactivate(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.branches.deactivate(user, id);
   }
+
+  @Roles('owner')
+  @Delete(':id/permanent')
+  hardDelete(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.branches.hardDelete(user, id);
+  }
 }
